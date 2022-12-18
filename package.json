@@ -1,0 +1,23 @@
+{
+  "name": "psalru",
+  "version": "1.0.0",
+  "description": "Public pages psal.ru",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/psalru/psalru.git"
+  },
+  "keywords": [
+    "приоритет 2030",
+    "псал"
+  ],
+  "author": "Alexey Safonov <alexey@safonov.pro>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/psalru/psalru/issues"
+  },
+  "homepage": "https://github.com/psalru/psalru#readme"
+}
