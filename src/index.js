@@ -1,5 +1,7 @@
 import './style.scss'
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('Hello world!')
+    const  year = this.getElementById('year')
+
+    year.innerHTML = new Date().getFullYear();
 })

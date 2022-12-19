@@ -1,3 +1,6 @@
-body {
-    background: #fff;
-}
+@import "variables";
+@import "mixins";
+@import "navbar";
+@import "content";
+@import "footer";
+@import "sticky-footer";
