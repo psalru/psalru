@@ -61,6 +61,10 @@
         }
     }
 
+    .card {
+        margin-bottom: 30px;
+    }
+
     a {
         @include link-default($content-link-color, $content-link-hover-color);
     }
