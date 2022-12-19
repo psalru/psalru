@@ -1,0 +1,80 @@
+#content {
+    padding: 50px 0;
+
+    @for $n from 1 through 5 {
+        h#{$n}:not(.card-title), .h#{$n} {
+            margin-top: calc($content-header-large-margin-size / $n);
+            margin-bottom: calc($content-header-large-margin-size - ($n - 1) * $content-header-delta);
+            font-family: $font-family-for-headers;
+            font-weight: normal;
+            font-size: calc($content-header-large-font-size - ($n - 1) * $content-header-delta);
+        }
+    }
+
+    .lead {
+        margin-bottom: 30px;
+        font-size: $content-lead-font-size;
+        font-weight: 300;
+    }
+
+    .alert {
+        & > :last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .todo-list {
+        margin-left: 0;
+        padding-left: 0;
+        list-style: none;
+
+        .item {
+            position: relative;
+            padding-left: 25px;
+
+            &::before {
+                position: absolute;
+                left: 0;
+                font-family: "Font Awesome 6 Free";
+                font-weight: 900;
+                display: inline-block;
+                font-style: normal;
+                font-variant: normal;
+                text-rendering: auto;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            &.in-progress::before {
+                content: "\f252";
+                color: $blue;
+            }
+
+            &.waiting::before {
+                content: "\f253";
+                color: $gray;
+            }
+
+            &.done::before {
+                content: "\f058";
+                color: $green-light;
+            }
+        }
+    }
+
+    .card {
+        margin-bottom: 30px;
+    }
+
+    a {
+        @include link-default($content-link-color, $content-link-hover-color);
+    }
+}
+
+#about, #todo, #contacts {
+    margin: 50px 0;
+}
+
+#about {
+    padding: 50px 0;
+    background-color: #eee;
+}
