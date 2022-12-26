@@ -41,6 +41,9 @@
                                 <a class="nav-link" href="#todo">Задачки</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="#news">Публикации</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="#contacts">Контакты</a>
                             </li>
                         </ul>
@@ -92,18 +95,9 @@
                     <h2><i class="fas fa-check-double"></i> Что сделано и/или планируется сделать</h2>
                     <div class="row">
                         <div class="col-xl-6">
-                            <h3>В планах или уже в работе</h3>
-                            <ul class="todo-list">
-                                <li class="item in-progress">DAG + Dashboard по новостям «Приоритет 2030»</li>
-                                <li class="item waiting">DAG + Dashboard по вакансиям университов</li>
-                                <li class="item waiting">DAG + Dashboard по ЕГИСУ НИОКТР</li>
-                                <li class="item waiting">DAG + Dashboard по один-мониторинг</li>
-                                <li class="item waiting">DAG + Dashboard по позициям сайтов университетов</li>
-                            </ul>
-                        </div>
-                        <div class="col-xl-6">
                             <h3>Уже можно потрогать</h3>
                             <ul class="todo-list">
+                                <li class="item done"><a href="https://github.com/psalru/airflow/blob/master/dags/news_feed.py" target="_blank" rel="noopener noreferrer">DAG</a> + 📊 <a href="https://datalens.yandex/yogp2fsiiqh4o" target="_blank" rel="noopener noreferrer">Dashboard по новостям «Приоритет 2030»</a></li>
                                 <li class="item done">Парсим <a href="https://github.com/psalru/analytics/blob/master/rosrid/report.ipynb" class="done" target="_blank" rel="noopener noreferrer">сайт ЕГИСУ НИОКТР</a> и делаем пример 📊 <a href="https://datalens.yandex/wfv3c82vd4sen" class="done" target="_blank" rel="noopener noreferrer">Dashboard-а</a></li>
                                 <li class="item done"><a href="https://github.com/psalru/analytics/blob/master/scientists_researchers_rf/report.ipynb" class="done" target="_blank" rel="noopener noreferrer">Парсим</a> сайта <a href="https://xn----8sbfhdabdwf1afqu5baxe0f2d.xn--p1ai/" class="done" target="_blank" rel="noopener noreferrer">ученые-исследователи.рф</a>, результаты в 📊 <a href="https://datalens.yandex/hr3o937ifwi29" class="done" target="_blank" rel="noopener noreferrer">Dashboard</a></li>
                                 <li class="item done">Парсим <a href="https://github.com/psalru/analytics/blob/master/combined_analytics_data/report.ipynb" class="done" target="_blank" rel="noopener noreferrer">аналитику</a> «Приоритета 2030», результаты в 📊 <a href="https://datalens.yandex/jj74wu737aj6b" class="done" target="_blank" rel="noopener noreferrer">Dashboard</a></li>
@@ -111,8 +105,28 @@
                                 <li class="item done"><a href="https://github.com/psalru/analytics/blob/master/wos_q1_q2_with_fractions/report.ipynb" target="_blank" rel="noopener noreferrer">Считаем</a> один из показателей программы «Приоритет 2030» по <del>WoS</del</li>
                             </ul>
                         </div>
+                        <div class="col-xl-6">
+                            <h3>В планах или уже в работе</h3>
+                            <ul class="todo-list">
+                                <li class="item in-progress">MVP публичного API</li>
+                                <li class="item in-progress">DAG по валютам + видео про Airflow</li>
+                                <li class="item waiting">DAG + Dashboard по вакансиям университов</li>
+                                <li class="item waiting">DAG + Dashboard по ЕГИСУ НИОКТР</li>
+                                <li class="item waiting">DAG + Dashboard по один-мониторинг</li>
+                                <li class="item waiting">DAG + Dashboard по позициям сайтов университетов</li>
+                            </ul>
+                        </div>
                     </div>
                     <p></p>
+                </div>
+            </div>
+
+            <div id="news">
+                <div class="container">
+                    <h2>Публикации связанные с «Приоритет 2030»</h2>
+                    <p><strong>Обратите внимание</strong>, что публикации собираются в <a href="https://github.com/psalru/airflow/blob/master/dags/news_feed.py" target="_blank" rel="noopener noreferrer">автоматическом режиме</a>, используя <a href="https://www.google.com/alerts" target="_blank" rel="noopener noreferrer">Google Alerts</a>.</p>
+                    <iframe src="https://datalens.yandex/nd5x8mqbcg72d?domain_recx=&date_rs6j=&keyword_cl62=&topic_a1fh=" width="100%" height="585" frameborder="0"></iframe>
+                    <p style="margin-top: 15px;"><small>Представленная таблица является частью 📊 <a href="https://datalens.yandex/yogp2fsiiqh4o" target="_blank" rel="noopener noreferrer">Dashboard-а по новостям «Приоритет 2030»</a>.</small></p>
                 </div>
             </div>
 
