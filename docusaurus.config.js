@@ -6,30 +6,19 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'My Site',
-  tagline: 'Dinosaurs are cool',
+  title: 'Аналитика высшего образования',
+  tagline: 'Проект ',
   favicon: 'img/favicon.ico',
 
-  // Set the production url of your site here
-  url: 'https://your-docusaurus-test-site.com',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
+  url: 'https://psal.ru',
   baseUrl: '/',
-
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
-
+  organizationName: 'psalru',
+  projectName: 'psalru',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-
-  // Even if you don't use internalization, you can use this field to set useful
-  // metadata like html lang. For example, if your site is Chinese, you may want
-  // to replace "en" with "zh-Hans".
   i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
+    defaultLocale: 'ru',
+    locales: ['ru'],
   },
 
   presets: [
@@ -39,20 +28,14 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          editUrl: 'https://github.com/psalru/psalru/tree/master/',
         },
         blog: {
           showReadingTime: true,
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          editUrl: 'https://github.com/psalru/psalru/tree/master/',
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve('./src/css/custom.scss'),
         },
       }),
     ],
@@ -64,9 +47,9 @@ const config = {
       // Replace with your project's social card
       image: 'img/docusaurus-social-card.jpg',
       navbar: {
-        title: 'My Site',
+        title: 'ПСАЛ',
         logo: {
-          alt: 'My Site Logo',
+          alt: 'Логотип «ПСАЛ»',
           src: 'img/logo.svg',
         },
         items: [
@@ -74,11 +57,15 @@ const config = {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Tutorial',
+            label: 'Обучающие материалы',
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
           {
-            href: 'https://github.com/facebook/docusaurus',
+            to: '/blog',
+            label: 'Блог',
+            position: 'left'
+          },
+          {
+            href: 'https://github.com/psalru',
             label: 'GitHub',
             position: 'right',
           },
@@ -88,46 +75,54 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: 'Docs',
+            title: 'Основные разделы сайта',
             items: [
               {
-                label: 'Tutorial',
+                label: 'Обучающие материалы',
                 to: '/docs/intro',
               },
-            ],
-          },
-          {
-            title: 'Community',
-            items: [
               {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-              },
-              {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/docusaurus',
-              },
-              {
-                label: 'Twitter',
-                href: 'https://twitter.com/docusaurus',
-              },
-            ],
-          },
-          {
-            title: 'More',
-            items: [
-              {
-                label: 'Blog',
+                label: 'Блог',
                 to: '/blog',
               },
+            ],
+          },
+          {
+            title: 'Связанные с проектом ссылки',
+            items: [
               {
-                label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
+                label: 'Репозитории на GitHub',
+                href: 'https://github.com/orgs/psalru/repositories',
+              },
+              {
+                label: 'Канал в Телеграмм',
+                href: 'https://t.me/psalchannel',
+              },
+              {
+                label: 'Обсуждения в Телеграмм',
+                href: 'https://t.me/psalgroup',
+              },
+            ],
+          },
+          {
+            title: 'Ссылки из уважения',
+            items: [
+              {
+                label: 'Минобрнауки 🇷🇺 России',
+                href: 'https://minobrnauki.gov.ru',
+              },
+              {
+                label: 'Приоритет 2030',
+                href: 'https://priority2030.ru',
+              },
+              {
+                label: 'Передовые инженерные школы',
+                href: 'https://engineers2030.ru',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: `© 2020-${new Date().getFullYear()}. Все авторские материалы проекта используйте по лицензии CC BY 4.0.`,
       },
       prism: {
         theme: lightCodeTheme,
@@ -136,4 +131,7 @@ const config = {
     }),
 };
 
-module.exports = config;
+module.exports = {
+  ...config,
+  plugins: ['docusaurus-plugin-sass']
+};
