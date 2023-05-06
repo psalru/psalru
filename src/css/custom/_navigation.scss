@@ -1,0 +1,5 @@
+@use 'variables' as v;
+
+.navbar, .menu, .breadcrumbs {
+    font-family: v.$font-family-for-navigation;
+}

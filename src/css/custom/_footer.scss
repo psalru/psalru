@@ -1,5 +1,8 @@
+@use 'variables' as v;
+
 .footer {
     margin-top: 100px;
+    font-family: v.$font-family-for-navigation;
 
     &__bottom {
         margin-top: 50px;

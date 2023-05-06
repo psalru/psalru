@@ -1,7 +1,6 @@
 @use 'custom/variables' as v;
-
+@import 'custom/navigation';
 @import 'custom/footer';
-
 
 :root {
   --ifm-color-primary: #{v.$green};
@@ -13,8 +12,9 @@
   --ifm-color-primary-lightest: #{lighten(v.$green-lighter, 10%)};
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-font-family-base: #{v.$font-family-for-content};
+  --ifm-heading-font-family: #{v.$font-family-for-headers};
 }
-
 
 [data-theme='dark'] {
   --ifm-color-primary: #{v.$gray};
