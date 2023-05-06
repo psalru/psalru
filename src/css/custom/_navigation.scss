@@ -1,5 +1,5 @@
 @use 'variables' as v;
 
-.navbar, .menu, .breadcrumbs {
+.navbar, .menu, .breadcrumbs, .thin-scrollbar {
     font-family: v.$font-family-for-navigation;
 }
