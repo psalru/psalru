@@ -1,0 +1,11 @@
+.hero {
+    background-image: url('@site/static/img/banner-chart-bars.svg'), url('@site/static/img/banner-chart-liners.svg');
+    background-repeat: no-repeat, no-repeat;
+    background-position: bottom right, top left;
+
+    &.hero--primary {
+        .button {
+            margin-top: 30px;
+        }
+    }
+}

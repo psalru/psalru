@@ -1,6 +1,7 @@
 @use 'custom/variables' as v;
 @import 'custom/navigation';
 @import 'custom/footer';
+@import 'custom/banner';
 
 :root {
   --ifm-color-primary: #{v.$green};

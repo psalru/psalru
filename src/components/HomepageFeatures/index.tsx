@@ -10,32 +10,32 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Парсин сайтов',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    title: 'Парсинг',
+    Svg: require('@site/static/img/parsing-cover.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+       Колосально <strong>большой объём данных</strong> можно <strong>позаимствовать</strong> с сайтов и 
+       публичных информационных систем, даже если у них <strong>нет описанного API</strong>.
       </>
     ),
   },
   {
     title: 'API',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    Svg: require('@site/static/img/api-cover.svg').default,
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Существует большое количество качественных источников данных с <strong>хорошо описанным API</strong>, 
+        который позволяют получить <strong>данные связанные с высшим образованием</strong>.
       </>
     ),
   },
   {
-    title: 'Инструментарий',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'Инструменты',
+    Svg: require('@site/static/img/tools-cover.svg').default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        «Управление на основе данных» не возможно без <strong>правильного набора инструментов</strong>, 
+        находящихся в распоряжении Ваших <strong>соутрудников</strong>.
       </>
     ),
   },
