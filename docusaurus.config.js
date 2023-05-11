@@ -137,5 +137,12 @@ const config = {
 
 module.exports = {
   ...config,
-  plugins: ['docusaurus-plugin-sass']
+  plugins: [
+    'docusaurus-plugin-sass',
+    ['docusaurus-plugin-yandex-metrica', {
+      counterID: 91769261,
+      webvisor: true,
+      trackHash: true
+    }]
+  ]
 };
