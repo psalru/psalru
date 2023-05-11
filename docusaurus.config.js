@@ -31,6 +31,7 @@ const config = {
           editUrl: 'https://github.com/psalru/psalru/tree/master/',
         },
         blog: {
+          blogTitle: 'Блог',
           blogSidebarTitle: 'Последнии записи',
           showReadingTime: true,
           editUrl: 'https://github.com/psalru/psalru/tree/master/',
