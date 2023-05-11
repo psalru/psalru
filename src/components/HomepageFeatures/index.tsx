@@ -4,6 +4,7 @@ import styles from './styles.module.css';
 
 type FeatureItem = {
   title: string;
+  link: string;
   Svg: React.ComponentType<React.ComponentProps<'svg'>>;
   description: JSX.Element;
 };
@@ -11,6 +12,7 @@ type FeatureItem = {
 const FeatureList: FeatureItem[] = [
   {
     title: 'Парсинг',
+    link: '/docs/category/парсинг',
     Svg: require('@site/static/img/parsing-cover.svg').default,
     description: (
       <>
@@ -21,6 +23,7 @@ const FeatureList: FeatureItem[] = [
   },
   {
     title: 'API',
+    link: '/docs/category/api',
     Svg: require('@site/static/img/api-cover.svg').default,
     description: (
       <>
@@ -31,6 +34,7 @@ const FeatureList: FeatureItem[] = [
   },
   {
     title: 'Инструменты',
+    link: '/docs/category/инструменты',
     Svg: require('@site/static/img/tools-cover.svg').default,
     description: (
       <>
@@ -41,14 +45,16 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
-function Feature({title, Svg, description}: FeatureItem) {
+function Feature({title, link, Svg, description}: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
+        <a href={link}>
+          <Svg className={styles.featureSvg} role="img" />
+        </a>
       </div>
       <div className="text--center padding-horiz--md">
-        <h3>{title}</h3>
+        <h3><a href={link}>{title}</a></h3>
         <p>{description}</p>
       </div>
     </div>
