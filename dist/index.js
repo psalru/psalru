@@ -1,1 +1,0 @@
-(()=>{"use strict";document.addEventListener("DOMContentLoaded",(function(){this.getElementById("year").innerHTML=(new Date).getFullYear()}))})();
