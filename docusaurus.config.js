@@ -12,8 +12,10 @@ const config = {
 
   url: 'https://psal.ru',
   baseUrl: '/',
+  trailingSlash: false,
   organizationName: 'psalru',
   projectName: 'psalru',
+  deploymentBranch: 'gh-pages',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   i18n: {
