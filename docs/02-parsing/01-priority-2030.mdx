@@ -1,0 +1,140 @@
+---
+sidebar_label: Показатели «Приоритет 2030»
+---
+
+# Парсинг сайта «Приоритета 2030»
+
+Для разных целей может понадобиться сводная таблица с текущими значениями, отражающими показатели университетов — участников программы «Приоритет 2030». Ниже представленное позволяет собрать всё в один файл.
+
+Надо оговориться, что полученная сборка **не содержит данные по треку «Дальний Восток»**, т.к. на начало мая 2023 года, университеты по данному треку отсутствуют на сайте.
+
+```python showLineNumbers title="Импорты и начальные настройки"
+import time
+import requests
+import pandas as pd
+
+# Создаём объект сессии для работы с сайтом
+session = requests.session()
+# На всякий случай зайдём на главную за печеньками
+home_resp = session.get('https://priority2030.ru/')
+is_everything_okay = home_resp.status_code == 200
+```
+
+## Список университетов
+
+Для начал сформируем список университетов:
+
+
+```python showLineNumbers title="Формируем список университетов"
+university_list_resp = session.get('https://lk.priority2030.ru/api/v0/priority/list')
+university_list = pd.DataFrame()
+
+if is_everything_okay and university_list_resp.status_code == 200:
+    university_list_json = university_list_resp.json()
+
+    if university_list_json['status'] == 'success':
+        university_list = pd.json_normalize(university_list_json['data']['participants'])
+
+# Небольшие улучшения данных
+university_list = university_list.rename(columns={'special': 'type'})
+university_list['type'] = university_list['type'].apply(lambda x: x if x != '' else 'Базовая часть')
+
+# Сохраняем полученный список университетов
+university_list.to_csv('data/university_list.csv', index=False)
+# Посмотрим количество по трекам
+university_list[['type', 'id']].groupby(by='type').count().rename(columns={'id': 'count'})
+```
+
+
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>type</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Базовая часть</th>
+      <td>73</td>
+    </tr>
+    <tr>
+      <th>Исследовательское лидерство</th>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>Территориальное/отраслевое лидерство</th>
+      <td>31</td>
+    </tr>
+  </tbody>
+</table>
+
+
+## Показатели программы
+
+Чтобы не перегружать сайт «Приоритет 2030», по каждому университету данный собираются **с задержкой в 0,5 секунды** (относитесь с заботой к источникам своих данных 🤗), соответственно собирается всё около 1-2 минут.
+
+
+```python showLineNumbers title="Собираем показатели программы по университетам"
+university_kpis = pd.DataFrame()
+
+for i, university in university_list.iterrows():
+    university_id = university['id']
+    resp = session.get(f"https://lk.priority2030.ru/api/v0/priority/{university_id}/indicator")
+
+    if is_everything_okay and resp.status_code == 200:
+        json_data = resp.json()
+
+        if json_data['status'] == 'success':
+            kpi_list = list(range(0, len(json_data['data'])))
+
+            for kpi_index in kpi_list:
+                kpi_type = 'Базовая часть'
+                elements = pd.json_normalize(json_data['data'][kpi_index]['elements'])
+
+                for j, kpi in elements.sort_values(by='indicator').iterrows():
+                        data_ids = {}
+
+                        # В API какая-то дичь творится...
+                        # Далее будет использоваться только «Отражение факта» и «План», но есть ещё и «Факт» 🤷‍♂️
+                        for data_id, data_item in enumerate(kpi['data']):
+                            data_ids[data_item['description']] = data_id
+
+                        for key, value in kpi['data'][data_ids['Отражение факта']]['data'].items():
+                            if value is not None:
+                                plan = kpi['data'][data_ids['План']]['data'][key]
+
+                                # Выясняем трек по спец. части
+                                if kpi_index > 0:
+                                    kpi_postfix = kpi['indicator'].split('_')[1]
+                                    kpi_type = 'Исследовательское лидерство' if kpi_postfix == 'с1' else 'Территориальное/отраслевое лидерство'
+
+                                university_kpis = pd.concat([university_kpis, pd.DataFrame([{
+                                    'id': university_id,
+                                    'university': university['shortName'],
+                                    'type': kpi_type,
+                                    'indicator': kpi['indicator'],
+                                    'unit': kpi['unit'],
+                                    'year': key,
+                                    'plan': plan,
+                                    'fact': value,
+                                    'percent': round(value / plan, 2) if plan else 0,
+                                    'description': kpi['description'],
+                                    'formula': kpi['formula'],
+                                    'calculation_method': kpi['calculationMethod']
+                                }])])
+
+    time.sleep(0.5)
+
+# Сохраняем получившуюся сборку
+university_kpis.to_csv('data/university_kpis.csv', index=False)
+```
+
+Вроде бы всё 👍 Исходный Jupiter Notebook для данной страницы находится по данной [ссылке](https://github.com/psalru/analytics/blob/master/PSAL-19_parse_kpi_from_site_p2030/parse_university_kpis.ipynb) в Github.
+
+
+Получившийся **набор данных**, на момент написания, вы можете ⬇️ скачать по [данной ссылке](https://storage.yandexcloud.net/psal.public/datasets/2023-05-03_universities_kpis_from_p2030_site.xlsx).

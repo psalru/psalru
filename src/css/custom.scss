@@ -1,0 +1,30 @@
+@use 'custom/variables' as v;
+@import 'custom/navigation';
+@import 'custom/footer';
+@import 'custom/docs';
+@import 'custom/banner';
+
+:root {
+  --ifm-color-primary: #{v.$green};
+  --ifm-color-primary-dark: #{v.$green-dark};
+  --ifm-color-primary-darker: #{darken(v.$green-dark, 5%)};
+  --ifm-color-primary-darkest: #{darken(v.$green-dark, 10%)};
+  --ifm-color-primary-light: #{v.$green-light};
+  --ifm-color-primary-lighter: #{v.$green-lighter};
+  --ifm-color-primary-lightest: #{lighten(v.$green-lighter, 10%)};
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-font-family-base: #{v.$font-family-for-content};
+  --ifm-heading-font-family: #{v.$font-family-for-headers};
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #{v.$gray};
+  --ifm-color-primary-dark: #{v.$gray-dark};
+  --ifm-color-primary-darker: #{darken(v.$gray-dark, 5%)};
+  --ifm-color-primary-darkest: #{darken(v.$gray-dark, 10%)};
+  --ifm-color-primary-light: #{v.$gray-light};
+  --ifm-color-primary-lighter: #{lighten(v.$gray-light, 5%)};
+  --ifm-color-primary-lightest: #{lighten(v.$gray-light, 10%)};
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}

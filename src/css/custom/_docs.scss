@@ -1,0 +1,20 @@
+@use 'variables' as v;
+
+.prism-code {
+    font-family: v.$font-family-for-code;
+    font-size: 0.9rem;
+}
+
+table.dataframe {
+    font-family: v.$font-family-for-navigation;
+
+    th, td  {
+        padding: 0 10px;
+    }
+
+    tbody {
+        th, td {
+            text-align: right;
+        }
+    }
+}
