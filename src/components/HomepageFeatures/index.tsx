@@ -14,7 +14,7 @@ const FeatureList: FeatureItem[] = [
     Svg: require('@site/static/img/parsing-cover.svg').default,
     description: (
       <>
-       Колосально <strong>большой объём данных</strong> можно <strong>позаимствовать</strong> с сайтов и 
+       Колоссально <strong>большой объём данных</strong> можно <strong>позаимствовать</strong> с сайтов и 
        публичных информационных систем, даже если у них <strong>нет описанного API</strong>.
       </>
     ),
@@ -35,7 +35,7 @@ const FeatureList: FeatureItem[] = [
     description: (
       <>
         «Управление на основе данных» не возможно без <strong>правильного набора инструментов</strong>, 
-        находящихся в распоряжении Ваших <strong>соутрудников</strong>.
+        находящихся в распоряжении Ваших <strong>сотрудников</strong>.
       </>
     ),
   },
