@@ -31,7 +31,7 @@ export default function Home(): JSX.Element {
   return (
     <Layout
       title={`ПСАЛ | ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      description="Анализ высшего образования и университетов, на базе вузов — участников программ «Приоритет 2030» и «Передовые инженерные школы»">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
