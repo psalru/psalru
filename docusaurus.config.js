@@ -35,6 +35,7 @@ const config = {
         blog: {
           blogTitle: 'Блог',
           blogSidebarTitle: 'Последнии записи',
+          blogDescription: 'Блог об аналитике и данных про высшее образование',
           showReadingTime: true,
           editUrl: 'https://github.com/psalru/psalru/tree/master/',
         },
