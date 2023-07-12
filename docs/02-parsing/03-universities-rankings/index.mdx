@@ -228,9 +228,6 @@ import requests
 import pandas as pd
 ```
 
-# Рейтинг интерфакса
-
-
 ```python showLineNumbers title="Вспомогательная функция для парсинга данных"
 def get_interfax_list_by_year(year, page=1):
     url = f"https://academia.interfax.ru/data/rating/?rating=1&year={year}&page={page}"
@@ -366,9 +363,6 @@ interfax_pivot['sum'] = interfax_pivot.sum(axis=1)
 interfax_pivot.sort_values(by='sum', ascending=False).head(10)
 ```
 
-
-
-
 <div>
 <table class="dataframe">
   <thead>
@@ -475,9 +469,200 @@ interfax_pivot.sort_values(by='sum', ascending=False).head(10)
 </div>
 
 
-
-
 ## RAEX ТОП 100
+
+```python showLineNumbers title="Необходимые библиотеки для данного рейтинга"
+import re
+import time
+import requests
+import numpy as np
+import pandas as pd
+from bs4 import BeautifulSoup
+```
+
+
+```python showLineNumbers title="Парсим данные рейтинга"
+years = list(range(2020, 2023 + 1))
+raex_list = []
+
+for y in years:
+    raex_url = f"https://raex-rr.com/pro/education/russian_universities/top-100_universities/{y}/"
+    raex_resp = requests.get(raex_url)
+
+    if raex_resp.status_code == 200:
+        raex_soup = BeautifulSoup(raex_resp.text)
+        raex_trs = raex_soup.select('#rrp_table_wrapper > table > tbody.list > tr')
+
+        for i, tr in enumerate(raex_trs):
+            th = tr.findChildren('th', recursive=False)
+            td = tr.findChildren('td', recursive=False)
+
+            raex_list.append({
+                'year': y,
+                'rank': int(th[0].text),
+                'title': re.sub(r'[\s\n]+', ' ', th[1].text).strip(),
+                'previous': float(td[0].text) if td[0].text != '-' else np.NaN,
+                'points': float(td[1].text),
+                'quality': int(td[2].text),
+                'graduates': int(td[3].text),
+                'science': int(td[4].text)
+            })
+    else:
+        print(f"{raex_url} return status code {raex_resp.status_code}")
+
+    # Бережём источник данных
+    time.sleep(1)
+
+raex_df = pd.DataFrame(raex_list)
+raex_df.to_csv(f"data/raex_{min(years)}-{max(years)}.csv", index=False)
+raex_df.to_excel(f"data/raex_{min(years)}-{max(years)}.xlsx", index=False)
+raex_df.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>year</th>
+      <th>rank</th>
+      <th>title</th>
+      <th>previous</th>
+      <th>points</th>
+      <th>quality</th>
+      <th>graduates</th>
+      <th>science</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020</td>
+      <td>1</td>
+      <td>Московский государственный университет имени М...</td>
+      <td>1.0</td>
+      <td>4.8419</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2020</td>
+      <td>2</td>
+      <td>Московский физико-технический институт (национ...</td>
+      <td>2.0</td>
+      <td>4.7734</td>
+      <td>2</td>
+      <td>7</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2020</td>
+      <td>3</td>
+      <td>Национальный исследовательский ядерный универс...</td>
+      <td>3.0</td>
+      <td>4.5535</td>
+      <td>5</td>
+      <td>5</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2020</td>
+      <td>4</td>
+      <td>Санкт-Петербургский государственный университет</td>
+      <td>4.0</td>
+      <td>4.5394</td>
+      <td>3</td>
+      <td>12</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2020</td>
+      <td>5</td>
+      <td>Национальный исследовательский университет "Вы...</td>
+      <td>5.0</td>
+      <td>4.4933</td>
+      <td>6</td>
+      <td>2</td>
+      <td>11</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+В отличие от предыдущих рейтингов, в данном рейтинге каждому университету присваивается конкретная позиция в рейтинге. Давайте посмотрим ТОП 10 лидеров по средней позиции в рейтинге за скачанные года.
+
+
+```python showLineNumbers title="Вычисляем ТОП 10 по средней позиции"
+raex_df[['title', 'rank']].groupby(by='title').mean().sort_values(by='rank').head(10)
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>rank</th>
+    </tr>
+    <tr>
+      <th>title</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Московский государственный университет имени М.В. Ломоносова</th>
+      <td>1.000000</td>
+    </tr>
+    <tr>
+      <th>Московский физико-технический институт (национальный исследовательский университет)</th>
+      <td>2.000000</td>
+    </tr>
+    <tr>
+      <th>Национальный исследовательский ядерный университет «МИФИ»</th>
+      <td>3.500000</td>
+    </tr>
+    <tr>
+      <th>Санкт-Петербургский государственный университет</th>
+      <td>3.500000</td>
+    </tr>
+    <tr>
+      <th>Национальный исследовательский университет "Высшая школа экономики"</th>
+      <td>5.250000</td>
+    </tr>
+    <tr>
+      <th>Московский государственный технический университет имени Н.Э. Баумана (национальный исследовательский университет)</th>
+      <td>6.000000</td>
+    </tr>
+    <tr>
+      <th>МГИМО МИД России</th>
+      <td>6.750000</td>
+    </tr>
+    <tr>
+      <th>Санкт-Петербургский политехнический университет Петра Великого</th>
+      <td>8.250000</td>
+    </tr>
+    <tr>
+      <th>Национальный исследовательский Томский политехнический университет</th>
+      <td>8.666667</td>
+    </tr>
+    <tr>
+      <th>Томский политехнический университет</th>
+      <td>9.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+**Обратите внимание** на то, что рейтинговое агентство RAEX «богато» на рейтинги (полный список [тут](https://raex-rr.com/all_rankings/)). Для парсинга других рейтингов, механики будут +/- аналогичные.
+
 
 ## Шанхайский рейтинг университетов
 
