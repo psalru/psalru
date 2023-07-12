@@ -1,5 +1,5 @@
 ---
-sidebar_label: Рейтингов университетов
+sidebar_label: Рейтинги университетов
 description: Парсинг международных (российских и зарубежных) рейтингов университетов
 ---
 
@@ -114,7 +114,7 @@ msk_df.head(5)
 Данные «Московского рейтинга» получены. Давайте посмотрим представительство стран по годам (ТОП 10).
 
 
-```python showLineNumbers title="Строим сводную таблицу по странам и годам"
+```python showLineNumbers title="Строим сводную таблицу и выводим ТОП 10"
 msk_pivot = pd.pivot_table(
     msk_df,
     index='country',
@@ -220,9 +220,262 @@ msk_pivot.sort_values(by='sum', ascending=False).head(10)
 </div>
 
 
-
-
 ## Рейтинг Интерфакса
+
+```python showLineNumbers title="Необходимые библиотеки для данного рейтинга"
+import time
+import requests
+import pandas as pd
+```
+
+# Рейтинг интерфакса
+
+
+```python showLineNumbers title="Вспомогательная функция для парсинга данных"
+def get_interfax_list_by_year(year, page=1):
+    url = f"https://academia.interfax.ru/data/rating/?rating=1&year={year}&page={page}"
+    result = []
+    resp = requests.get(url)
+
+    # Бережём источник данных
+    time.sleep(1)
+
+    if resp.status_code == 200:
+        json_data = resp.json()
+        result += json_data['universities']
+        page_count = json_data['page_count']
+
+        if page != page_count:
+            result += get_interfax_list_by_year(year, page + 1)
+    else:
+        print(f"{url} return status code {resp.status_code}")
+
+    return result
+```
+
+
+```python showLineNumbers title="Парсим данные рейтинга"
+years = list(range(2020, 2023 + 1))
+interfax_df = pd.DataFrame()
+
+for y in years:
+    interfax_df_by_year = pd.DataFrame(get_interfax_list_by_year(y))
+    interfax_df_by_year['year'] = y
+    interfax_df = pd.concat([interfax_df, interfax_df_by_year], ignore_index=True)
+
+interfax_df.to_csv(f"data/interfax_{min(years)}-{max(years)}.csv", index=False)
+interfax_df.to_excel(f"data/interfax_{min(years)}-{max(years)}.xlsx", index=False)
+interfax_df.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>change</th>
+      <th>description</th>
+      <th>is_close</th>
+      <th>point</th>
+      <th>rank</th>
+      <th>name</th>
+      <th>id</th>
+      <th>url</th>
+      <th>year</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>None</td>
+      <td>False</td>
+      <td>1000</td>
+      <td>1</td>
+      <td>Московский государственный университет имени М...</td>
+      <td>1</td>
+      <td>https://www.msu.ru</td>
+      <td>2020</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0</td>
+      <td>None</td>
+      <td>False</td>
+      <td>963</td>
+      <td>2</td>
+      <td>Национальный исследовательский ядерный универс...</td>
+      <td>2</td>
+      <td>https://mephi.ru</td>
+      <td>2020</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0</td>
+      <td>None</td>
+      <td>False</td>
+      <td>961</td>
+      <td>3</td>
+      <td>Московский физико-технический институт (национ...</td>
+      <td>4</td>
+      <td>https://mipt.ru</td>
+      <td>2020</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0</td>
+      <td>None</td>
+      <td>False</td>
+      <td>857</td>
+      <td>4</td>
+      <td>Национальный исследовательский университет «Вы...</td>
+      <td>6</td>
+      <td>https://www.hse.ru</td>
+      <td>2020</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1</td>
+      <td>None</td>
+      <td>False</td>
+      <td>848</td>
+      <td>5</td>
+      <td>Новосибирский национальный исследовательский г...</td>
+      <td>3</td>
+      <td>http://www.nsu.ru/?lang=ru</td>
+      <td>2020</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+В данных рейтинга Интерфакса уже есть значения про движение университета в рамках рейтинга. Давайте посмотрим на ТОП 10 университетов, которые поднялись в рейтинге за последние года больше всех.
+
+
+```python showLineNumbers title="Строим сводную таблицу и выводим ТОП 10"
+interfax_pivot = pd.pivot_table(
+    interfax_df,
+    index='name',
+    columns='year',
+    values='change',
+    aggfunc='sum'
+)
+interfax_pivot['sum'] = interfax_pivot.sum(axis=1)
+interfax_pivot.sort_values(by='sum', ascending=False).head(10)
+```
+
+
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th>year</th>
+      <th>2020</th>
+      <th>2021</th>
+      <th>2022</th>
+      <th>2023</th>
+      <th>sum</th>
+    </tr>
+    <tr>
+      <th>name</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Университет Синергия</th>
+      <td>-1.0</td>
+      <td>78.0</td>
+      <td>43.0</td>
+      <td>44.0</td>
+      <td>164.0</td>
+    </tr>
+    <tr>
+      <th>Московский институт психоанализа</th>
+      <td>-8.0</td>
+      <td>3.0</td>
+      <td>128.0</td>
+      <td>25.0</td>
+      <td>148.0</td>
+    </tr>
+    <tr>
+      <th>Чеченский государственный университет имени А.А.Кадырова</th>
+      <td>-22.0</td>
+      <td>83.0</td>
+      <td>58.0</td>
+      <td>14.0</td>
+      <td>133.0</td>
+    </tr>
+    <tr>
+      <th>Московский государственный психолого-педагогический университет</th>
+      <td>15.0</td>
+      <td>78.0</td>
+      <td>18.0</td>
+      <td>12.0</td>
+      <td>123.0</td>
+    </tr>
+    <tr>
+      <th>Уральский государственный аграрный университет</th>
+      <td>-21.0</td>
+      <td>40.0</td>
+      <td>104.0</td>
+      <td>-4.0</td>
+      <td>119.0</td>
+    </tr>
+    <tr>
+      <th>Красноярский государственный аграрный университет</th>
+      <td>-1.0</td>
+      <td>-12.0</td>
+      <td>122.0</td>
+      <td>3.0</td>
+      <td>112.0</td>
+    </tr>
+    <tr>
+      <th>Уральский государственный горный университет</th>
+      <td>25.0</td>
+      <td>17.0</td>
+      <td>21.0</td>
+      <td>48.0</td>
+      <td>111.0</td>
+    </tr>
+    <tr>
+      <th>Кировский государственный медицинский университет</th>
+      <td>25.0</td>
+      <td>12.0</td>
+      <td>31.0</td>
+      <td>40.0</td>
+      <td>108.0</td>
+    </tr>
+    <tr>
+      <th>Кубанский государственный технологический университет</th>
+      <td>24.0</td>
+      <td>18.0</td>
+      <td>61.0</td>
+      <td>-9.0</td>
+      <td>94.0</td>
+    </tr>
+    <tr>
+      <th>Государственный университет просвещения (МГОУ)</th>
+      <td>5.0</td>
+      <td>28.0</td>
+      <td>51.0</td>
+      <td>1.0</td>
+      <td>85.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
 
 ## RAEX ТОП 100
 
