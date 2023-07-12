@@ -10,16 +10,16 @@ description: Парсинг международных (российских и 
 1. [Московский рейтинг университетов — три миссии университета](https://mosiur.org/)
 1. [Рейтинг университетов Интерфакса](https://academia.interfax.ru/ru/ratings/?rating=1&year=2023&page=1)
 1. [RAEX ТОП 100](https://raex-rr.com/education/russian_universities/top-100_universities/2023/)
-1. Шанхайский рейтинг университетов
+1. [Шанхайский рейтинг университетов](https://www.shanghairanking.com/rankings/arwu/2022)
 1. [Рейтинг Best Global Universities](https://www.usnews.com/education/best-global-universities/rankings), в т.ч. по предметам
-1. QS-рейтинг университетов, в т.ч. по предметам
-1. Рейтинг университетов от Times Higher Education
+1. [Рейтинг университетов от Times Higher Education](https://www.timeshighereducation.com/world-university-rankings/2023/world-ranking)
+1. QS-рейтинг университетов — [доступ к сайту рейтинга заблокирован](https://puchezhsky--iwn.sudrf.ru/modules.php?name=sud_delo&srv_num=1&name_op=case&case_id=86330472&case_uid=3e312afb-7355-4c11-8db4-c4f035377b3d&delo_id=41&new=0)
 
 Рейтинги выходят (обновляются) в разное время года. На момент написания данного материала (июль 2023 г.), почти все рейтинги включали 2023 год (внимание на переменную `years`, если она используется в коде).
 
 ## Московский рейтинг университетов
 
-```python showLineNumbers title="Необходимые библиотеки для данного рейтинга"
+```python showLineNumbers title="Необходимые библиотеки"
 import time
 import requests
 import pandas as pd
@@ -222,7 +222,7 @@ msk_pivot.sort_values(by='sum', ascending=False).head(10)
 
 ## Рейтинг Интерфакса
 
-```python showLineNumbers title="Необходимые библиотеки для данного рейтинга"
+```python showLineNumbers title="Необходимые библиотеки"
 import time
 import requests
 import pandas as pd
@@ -471,7 +471,7 @@ interfax_pivot.sort_values(by='sum', ascending=False).head(10)
 
 ## RAEX ТОП 100
 
-```python showLineNumbers title="Необходимые библиотеки для данного рейтинга"
+```python showLineNumbers title="Необходимые библиотеки"
 import re
 import time
 import requests
@@ -668,7 +668,7 @@ raex_df[['title', 'rank']].groupby(by='title').mean().sort_values(by='rank').hea
 
 ## Best Global Universities
 
-```python
+```python showLineNumbers title="Необходимые библиотеки"
 import os
 import json
 import time
@@ -678,12 +678,12 @@ import pandas as pd
 from bs4 import BeautifulSoup
 ```
 
-**Особенности данного рейтинга**, что на сайте не сохраняется ретроспектива. Парсить будем что есть (на момент написания рейтинг 2022-2023).
+**Особенности данного рейтинга**, что на сайте не сохраняется ретроспектива. Парсить будем что есть в сейчас на сайте рейтинга (на момент написания рейтинг 2022-2023).
 
 Для начала станем немного больше похожими на браузер.
 
 
-```python
+```python showLineNumbers title="Создаём сессию для работы с сайтом"
 session = requests.session()
 session.headers.update({
     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -706,7 +706,7 @@ session.headers.update({
 ### Общий рейтинг
 
 
-```python
+```python showLineNumbers title="Сборка данных общего рейтинга"
 data_list = []
 url_tpl = 'https://www.usnews.com/education/best-global-universities/search?format=json&page='
 url_first = url_tpl + '1'
@@ -829,7 +829,7 @@ ranking.head()
 Вытащим данные про рейтинг из столбца `ranks` и сохраним результаты, а далее выстроим, для примера, производный рейтинг стран по медианной позиции университетов в рейтинге (посмотрим ТОП 10).
 
 
-```python
+```python showLineNumbers title="Приводим данные в порядок и выводим статистику по странам"
 for i, r in ranking.iterrows():
     rank_value = r['ranks'][0]['value']
 
@@ -856,7 +856,7 @@ ranking[['country_name', 'id', 'ranks.value']].groupby(by='country_name').agg({
 
 
 <div>
-<table>
+<table class="dataframe">
   <thead>
     <tr>
       <th></th>
@@ -928,10 +928,10 @@ ranking[['country_name', 'id', 'ranks.value']].groupby(by='country_name').agg({
 
 ### Предметные
 
-По предметам данных получается намного больше, поэтому разобьём весь процесс на этапы. Начнём со списка предметов (тематик).
+По предметам данных получается намного больше, поэтому разобьём весь процесс на этапы. Начнём со списка предметов.
 
 
-```python
+```python showLineNumbers title="Парсим список предметов"
 subjects = []
 subject_first_url = 'https://www.usnews.com/education/best-global-universities/rankings'
 subject_first_resp = session.get(subject_first_url)
@@ -999,7 +999,7 @@ pd.DataFrame(subjects).head()
 Если что-то «залипнет», останавливайте и перезапускайте процесс, в том числе, на всякий случай, блок выше, где создаётся объект `session`. Код каждый запуск будет скачивать только то, что не успел скачать в прошлый раз.
 
 
-```python
+```python showLineNumbers title="Сохраняем данные по предметным рейтигам"
 subject_data_folder = 'data/downloads/bgu_by_subjects'
 subject_url_prefix = 'https://www.usnews.com/education/best-global-universities'
 
@@ -1046,7 +1046,7 @@ for i, s in enumerate(subjects):
 Соберём всё в кучку из скачанных файлов.
 
 
-```python
+```python showLineNumbers title="Формируем окончательные результы"
 df_by_subject = pd.DataFrame()
 
 for s in subjects:
@@ -1226,7 +1226,7 @@ df_by_subject.head()
 Давайте посмотрим ТОП 10 предметных рейтингов по количеству университетов, в которых представлена 🇷🇺 Россия.
 
 
-```python
+```python showLineNumbers title="Выводим статистику по предметным рейтигам"
 df_by_subject[df_by_subject['three_digit_country_code'] == 'RUS'][['rank-1.label', 'id']].\
     groupby(by='rank-1.label').count().\
     rename(columns={'id': 'count'}).sort_values(by='count', ascending=False)
@@ -1354,7 +1354,374 @@ df_by_subject[df_by_subject['three_digit_country_code'] == 'RUS'][['rank-1.label
 </table>
 </div>
 
+## Times Higher Education
+
+
+```python showLineNumbers title="Необходимые библиотеки"
+import re
+import time
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+```
+
+Для парсинга этого рейтинга тоже создаём объект `session`.
+
+
+```python showLineNumbers title="Создаём сессию для работы с сайтом"
+session = requests.session()
+session.headers.update({
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'accept-encoding': 'gzip, deflate, br',
+    'accept-language': 'ru',
+    'cache-control': 'no-cache',
+    'pragma': 'no-cache',
+    'sec-ch-ua': '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Linux"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
+})
+```
+
+Дальше собираем данные по годам.
+
+
+```python showLineNumbers title="Собираем данные по годам"
+years = range(2020, 2023 + 1)
+url_tpl = 'https://www.timeshighereducation.com/world-university-rankings/{year}/world-ranking'
+ranking = pd.DataFrame(columns=['year'])
+
+for year in years:
+    html_url = url_tpl.format(year=year)
+    html_resp = session.get(html_url)
+
+    if html_resp.status_code == 200:
+        html = html_resp.text
+        soup = BeautifulSoup(html)
+        scripts = soup.find_all('script')
+        search_words = 'init_drupal_core_settings'
+        drupal_settings_str = None
+
+        for script in scripts:
+            script_text = script.text
+
+            if script_text.find(search_words) > -1:
+                drupal_settings_str = script_text
+
+        if drupal_settings_str:
+            found = re.search(f"world_university_rankings_{year}_0__[\w\d]+\.json", drupal_settings_str)
+
+            if found:
+                data_url = f'https://www.timeshighereducation.com/sites/default/files/the_data_rankings/{found[0]}'
+                data_resp = session.get(data_url)
+
+                if data_resp.status_code == 200:
+                    data = data_resp.json()
+                    chunk = pd.json_normalize(data['data'])
+                    chunk['year'] = year
+                    ranking = pd.concat([ranking, chunk], ignore_index=True)
+                else:
+                    print(f"{data_url} return status code {data_resp.status_code}")
+    else:
+        print(f"{html_url} return status code {html_resp.status_code}")
+
+    # Бережём источник данных
+    time.sleep(1)
+
+ranking.to_csv(f"data/the_{min(years)}-{max(years)}.csv", index=False)
+ranking.to_excel(f"data/the_{min(years)}-{max(years)}.xlsx", index=False)
+ranking.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>year</th>
+      <th>rank_order</th>
+      <th>rank</th>
+      <th>name</th>
+      <th>scores_overall</th>
+      <th>scores_overall_rank</th>
+      <th>scores_teaching</th>
+      <th>scores_teaching_rank</th>
+      <th>scores_research</th>
+      <th>scores_research_rank</th>
+      <th>...</th>
+      <th>stats_pc_intl_students</th>
+      <th>stats_female_male_ratio</th>
+      <th>aliases</th>
+      <th>subjects_offered</th>
+      <th>closed</th>
+      <th>unaccredited</th>
+      <th>disabled</th>
+      <th>apply_link</th>
+      <th>cta_button.link</th>
+      <th>cta_button.text</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020</td>
+      <td>10</td>
+      <td>1</td>
+      <td>University of Oxford</td>
+      <td>95.4</td>
+      <td>10</td>
+      <td>90.5</td>
+      <td>6</td>
+      <td>99.6</td>
+      <td>1</td>
+      <td>...</td>
+      <td>41%</td>
+      <td>46 : 54</td>
+      <td>University of Oxford</td>
+      <td>Accounting &amp; Finance,General Engineering,Commu...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2020</td>
+      <td>20</td>
+      <td>2</td>
+      <td>California Institute of Technology</td>
+      <td>94.5</td>
+      <td>20</td>
+      <td>92.1</td>
+      <td>2</td>
+      <td>97.2</td>
+      <td>4</td>
+      <td>...</td>
+      <td>30%</td>
+      <td>34 : 66</td>
+      <td>California Institute of Technology caltech</td>
+      <td>Languages, Literature &amp; Linguistics,Economics ...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2020</td>
+      <td>30</td>
+      <td>3</td>
+      <td>University of Cambridge</td>
+      <td>94.4</td>
+      <td>30</td>
+      <td>91.4</td>
+      <td>4</td>
+      <td>98.7</td>
+      <td>2</td>
+      <td>...</td>
+      <td>37%</td>
+      <td>47 : 53</td>
+      <td>University of Cambridge</td>
+      <td>Business &amp; Management,General Engineering,Art,...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2020</td>
+      <td>40</td>
+      <td>4</td>
+      <td>Stanford University</td>
+      <td>94.3</td>
+      <td>40</td>
+      <td>92.8</td>
+      <td>1</td>
+      <td>96.4</td>
+      <td>5</td>
+      <td>...</td>
+      <td>23%</td>
+      <td>43 : 57</td>
+      <td>Stanford University</td>
+      <td>Physics &amp; Astronomy,Computer Science,Politics ...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>NaN</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2020</td>
+      <td>50</td>
+      <td>5</td>
+      <td>Massachusetts Institute of Technology</td>
+      <td>93.6</td>
+      <td>50</td>
+      <td>90.5</td>
+      <td>5</td>
+      <td>92.4</td>
+      <td>10</td>
+      <td>...</td>
+      <td>34%</td>
+      <td>39 : 61</td>
+      <td>Massachusetts Institute of Technology</td>
+      <td>Mathematics &amp; Statistics,Languages, Literature...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 33 columns</p>
+</div>
+
+
+
+Из полученных данных соберём количество 🇷🇺 российских университетов в рейтинге по годам.
+
+
+```python showLineNumbers title="Выводим статистику по количеству университетов"
+ranking[ranking['location'] == 'Russian Federation'][['year', 'location']].\
+    groupby(by='year').count().rename(columns={'location': 'count'})
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>year</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2020</th>
+      <td>39</td>
+    </tr>
+    <tr>
+      <th>2021</th>
+      <td>48</td>
+    </tr>
+    <tr>
+      <th>2022</th>
+      <td>100</td>
+    </tr>
+    <tr>
+      <th>2023</th>
+      <td>103</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
 ## QS-рейтинг университетов
 
+:::warning Сайт заблокирован
 
-## Times Higher Education
+Доступ к сайту данного рейтинга заблокирован по [решению 2а-62/2023 от 19.01.2023](https://puchezhsky--iwn.sudrf.ru/modules.php?name=sud_delo&srv_num=1&name_op=case&case_id=86330472&case_uid=3e312afb-7355-4c11-8db4-c4f035377b3d&delo_id=41&new=0) Пучежского районного суда - Ивановской области. С учётом этого, а также политизированной позиции в отношении 🇷🇺 Российских университетов руководителей рейтинга, ниже представленный код публикуется без проверки. В какой-то момент он работал 🤷‍♂️
+
+:::
+
+По каким-то причинам на сайте суда `<данные изъяты>` и не видно доменного имени, может потребоваться эта [ссылка](https://eais.rkn.gov.ru/) на реестр Роскомнадзора. В искомом ресурсе указывать — `www.topuniversities.com`.
+
+```python showLineNumbers title="Общий рейтинг"
+import json
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+
+year = 2022
+page_url = f'https://www.topuniversities.com/university-rankings/world-university-rankings/{year}'
+page_resp = requests.get(page_url)
+
+if page_resp.status_code == 200:
+    page_html = page_resp.text
+    page_soup = BeautifulSoup(page_html)
+    drupal_settings = page_soup.find('script', attrs={'data-drupal-selector': 'drupal-settings-json'}).text
+    drupal_settings_json = json.loads(drupal_settings)
+    nid = drupal_settings_json['statistics']['data']['nid']
+    rank_resp = requests.get(f"https://www.topuniversities.com/rankings/endpoint?nid={nid}&page=0&items_per_page=2000")
+
+    if rank_resp.status_code == 200:
+        rank_json = rank_resp.json()
+        df = pd.json_normalize(rank_json['score_nodes'])
+```
+
+```python showLineNumbers title="Предметный рейтинг"
+import json
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+
+year = 2022
+page_url = f'https://www.topuniversities.com/university-rankings/university-subject-rankings/{year}/natural-sciences'
+page_resp = requests.get(page_url)
+subjects = []
+result = pd.DataFrame()
+
+if page_resp.status_code == 200:
+    page_html = page_resp.text
+    page_soup = BeautifulSoup(page_html)
+    subject_el = page_soup.find('select', {'id': 'qsrankingsubject'})
+
+    for g in subject_el.find_all('optgroup'):
+        for o in g.find_all('option'):
+            subjects.append({
+                'group': g['label'],
+                'subject': o.text,
+                'url': o['value']
+            })
+
+for i, s in enumerate(subjects):
+    print(i, s['group'], '-', s['subject'])
+
+    s_resp = requests.get(f"https://www.topuniversities.com/{s['url']}")
+
+    if s_resp.status_code == 200:
+        s_html = s_resp.text
+        s_soup = BeautifulSoup(s_html)
+        drupal_settings = s_soup.find('script', attrs={'data-drupal-selector': 'drupal-settings-json'}).text
+        drupal_settings_json = json.loads(drupal_settings)
+        rank_url = drupal_settings_json['qs_rankings_datatables']['rank_url']
+        rank_resp = requests.get(rank_url)
+
+        if rank_resp.status_code == 200:
+            rank_json = rank_resp.json()
+            df = pd.json_normalize(rank_json['data'])
+
+            for i, r in df.iterrows():
+                title_html = r['title']
+                title_soup = BeautifulSoup(title_html)
+                df.loc[i, 'title'] = title_soup.text
+                df.loc[i, 'url'] = f"https://www.topuniversities.com{title_soup.a['href']}"
+
+            df['group'] = s['group']
+            df['subject'] = s['subject']
+
+            result = pd.concat([result, df], ignore_index=True)
+```
