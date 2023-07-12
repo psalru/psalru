@@ -668,14 +668,693 @@ raex_df[['title', 'rank']].groupby(by='title').mean().sort_values(by='rank').hea
 
 ## Best Global Universities
 
-### Основной
+```python
+import os
+import json
+import time
+import requests
+import numpy as np
+import pandas as pd
+from bs4 import BeautifulSoup
+```
 
-### Предметный
+**Особенности данного рейтинга**, что на сайте не сохраняется ретроспектива. Парсить будем что есть (на момент написания рейтинг 2022-2023).
+
+Для начала станем немного больше похожими на браузер.
+
+
+```python
+session = requests.session()
+session.headers.update({
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'accept-encoding': 'gzip, deflate, br',
+    'accept-language': 'ru',
+    'cache-control': 'no-cache',
+    'pragma': 'no-cache',
+    'sec-ch-ua': '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Linux"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
+})
+```
+
+### Общий рейтинг
+
+
+```python
+data_list = []
+url_tpl = 'https://www.usnews.com/education/best-global-universities/search?format=json&page='
+url_first = url_tpl + '1'
+resp_first = session.get(url_first)
+
+if resp_first.status_code == 200:
+    data_first = resp_first.json()
+    total_pages = data_first['total_pages']
+    data_list += data_first['items']
+
+    for page_number in range(2, total_pages  + 1):
+        url = url_tpl + str(page_number)
+        resp = session.get(url)
+
+        if resp.status_code == 200:
+            json_data = resp.json()
+            data_list += json_data['items']
+        else:
+            print(f"{url} return status code {resp.status_code}")
+
+        # Бережём источник данных
+        time.sleep(1)
+else:
+    print(f"{url_first} return status code {resp_first.status_code}")
+
+ranking = pd.DataFrame(data_list)
+ranking.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>url</th>
+      <th>id</th>
+      <th>name</th>
+      <th>city</th>
+      <th>country_name</th>
+      <th>three_digit_country_code</th>
+      <th>ranks</th>
+      <th>stats</th>
+      <th>image_url</th>
+      <th>blurb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>166027</td>
+      <td>Harvard University</td>
+      <td>Cambridge (U.S.)</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '1', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '100.0', 'label': 'Global Score'&#125;, ...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>Founded in 1636, Harvard University is the old...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>166683</td>
+      <td>Massachusetts Institute of Technology (MIT)</td>
+      <td>Cambridge (U.S.)</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '2', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '97.7', 'label': 'Global Score'&#125;, &#123;...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>Massachusetts Institute of Technology, founded...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>243744</td>
+      <td>Stanford University</td>
+      <td>Stanford</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '3', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '95.2', 'label': 'Global Score'&#125;, &#123;...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>Stanford University was founded in 1885 and is...</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>110635</td>
+      <td>University of California Berkeley</td>
+      <td>Berkeley</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '4', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '88.7', 'label': 'Global Score'&#125;, &#123;...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>The University of California—Berkeley is situa...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>503637</td>
+      <td>University of Oxford</td>
+      <td>Oxford</td>
+      <td>United Kingdom</td>
+      <td>GBR</td>
+      <td>&#91;&#123;'value': '5', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '86.8', 'label': 'Global Score'&#125;, &#123;...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>The exact date of the University of Oxford’s f...</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Вытащим данные про рейтинг из столбца `ranks` и сохраним результаты, а далее выстроим, для примера, производный рейтинг стран по медианной позиции университетов в рейтинге (посмотрим ТОП 10).
+
+
+```python
+for i, r in ranking.iterrows():
+    rank_value = r['ranks'][0]['value']
+
+    ranking.loc[i, 'ranks.value'] = np.NaN if rank_value == 'Unranked' else int(rank_value.replace(',', ''))
+    ranking.loc[i, 'ranks.is_tied'] = r['ranks'][0]['is_tied']
+    ranking.loc[i, 'ranks.is_ranked'] = r['ranks'][0]['is_ranked']
+    ranking.loc[i, 'ranks.label'] = r['ranks'][0]['label']
+
+# Сохраняем результаты
+ranking.to_csv('data/best_global_universities.csv', index=False)
+ranking.to_excel('data/best_global_universities.xlsx', index=False)
+
+# ТОП 10 стран по медиане
+ranking[['country_name', 'id', 'ranks.value']].groupby(by='country_name').agg({
+    'id': 'count',
+    'ranks.value': 'median'
+}).rename(columns={
+    'id': 'count',
+    'ranks.value': 'rank_median'
+}).sort_values(by='rank_median').head(10)
+```
+
+
+
+
+<div>
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+      <th>rank_median</th>
+    </tr>
+    <tr>
+      <th>country_name</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Netherlands</th>
+      <td>15</td>
+      <td>97.5</td>
+    </tr>
+    <tr>
+      <th>Hong Kong</th>
+      <td>7</td>
+      <td>100.0</td>
+    </tr>
+    <tr>
+      <th>Switzerland</th>
+      <td>12</td>
+      <td>150.0</td>
+    </tr>
+    <tr>
+      <th>Singapore</th>
+      <td>4</td>
+      <td>231.0</td>
+    </tr>
+    <tr>
+      <th>Denmark</th>
+      <td>7</td>
+      <td>261.0</td>
+    </tr>
+    <tr>
+      <th>Australia</th>
+      <td>39</td>
+      <td>273.0</td>
+    </tr>
+    <tr>
+      <th>Belgium</th>
+      <td>11</td>
+      <td>292.0</td>
+    </tr>
+    <tr>
+      <th>Sweden</th>
+      <td>19</td>
+      <td>346.5</td>
+    </tr>
+    <tr>
+      <th>Finland</th>
+      <td>11</td>
+      <td>447.0</td>
+    </tr>
+    <tr>
+      <th>Iceland</th>
+      <td>1</td>
+      <td>452.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+### Предметные
+
+По предметам данных получается намного больше, поэтому разобьём весь процесс на этапы. Начнём со списка предметов (тематик).
+
+
+```python
+subjects = []
+subject_first_url = 'https://www.usnews.com/education/best-global-universities/rankings'
+subject_first_resp = session.get(subject_first_url)
+
+if subject_first_resp.status_code == 200:
+    subject_html = subject_first_resp.text
+    subject_soup = BeautifulSoup(subject_html)
+    subject_select = subject_soup.find('select', {'name': 'subject'})
+
+    for o in subject_select.find_all('option'):
+        if o['value']:
+            subjects.append({
+                'title': o.text,
+                'value': o['value']
+            })
+else:
+    print(f"{subject_first_url} return status code {subject_first_resp.status_code}")
+
+pd.DataFrame(subjects).head()
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>title</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Agricultural Sciences</td>
+      <td>agricultural-sciences</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Artificial Intelligence</td>
+      <td>artificial-intelligence</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Arts and Humanities</td>
+      <td>arts-and-humanities</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Biology and Biochemistry</td>
+      <td>biology-biochemistry</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Biotechnology and Applied Microbiology</td>
+      <td>biotechnology-applied-microbiology</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Теперь скачаем данные по тематикам и сохраним их на диске. Это займёт какое-то время, наберитесь терпения. Процесс можно отслеживать в папке, куда сохраняются данные `data/downloads/bgu_by_subjects`.
+
+Если что-то «залипнет», останавливайте и перезапускайте процесс, в том числе, на всякий случай, блок выше, где создаётся объект `session`. Код каждый запуск будет скачивать только то, что не успел скачать в прошлый раз.
+
+
+```python
+subject_data_folder = 'data/downloads/bgu_by_subjects'
+subject_url_prefix = 'https://www.usnews.com/education/best-global-universities'
+
+for i, s in enumerate(subjects):
+    subject_value = s['value']
+    subject_dir = f"{subject_data_folder}/{subject_value.replace('-', '_')}"
+
+    # Создаём папки для данных, если их не существует
+    if not os.path.exists(subject_dir):
+        os.makedirs(subject_dir)
+
+    url_subject_tpl = f"{subject_url_prefix}/{subject_value}?format=json&page="
+    first_url_subject = url_subject_tpl + '1'
+    first_resp_subject = session.get(first_url_subject)
+
+    if first_resp_subject.status_code == 200:
+        first_json_subject = first_resp_subject.json()
+        total_pages_subject = first_json_subject['total_pages']
+
+        with open(f"{subject_dir}/1.json", 'w') as f:
+            f.write(json.dumps(first_resp_subject.json()['items'], ensure_ascii=False, indent=4))
+
+        for page_number in range(2, total_pages_subject + 1):
+            subject_page_file_data = f"{subject_dir}/{page_number}.json"
+
+            if os.path.isfile(subject_page_file_data):
+                continue
+
+            url_subject = url_subject_tpl + str(page_number)
+            resp_subject = session.get(url_subject)
+
+            if resp_subject.status_code == 200:
+                with open(subject_page_file_data, 'w') as f:
+                    f.write(json.dumps(resp_subject.json()['items'], ensure_ascii=False, indent=4))
+            else:
+                print(f"{url_subject} return status code {resp_subject.status_code}")
+
+            # Бережём источник данных
+            time.sleep(1)
+    else:
+        print(f"{first_url_subject} return status code {first_resp_subject.status_code}")
+```
+
+Соберём всё в кучку из скачанных файлов.
+
+
+```python
+df_by_subject = pd.DataFrame()
+
+for s in subjects:
+    subject_value = s['value']
+    subject_dir = f"{subject_data_folder}/{subject_value.replace('-', '_')}"
+    bgu_files_numbers_in_subject = list(sorted([int(x.replace('.json', '')) for x in os.listdir(subject_dir)]))
+
+    for n in bgu_files_numbers_in_subject:
+        file_path = f"{subject_dir}/{n}.json"
+        json_data = json.load(open(file_path, 'r'))
+        chunk = pd.json_normalize(json_data)
+
+        for i, r in chunk.iterrows():
+            for rank_idx, rank in enumerate(r['ranks']):
+                rank_value = rank['value']
+                chunk.loc[i, f'rank-{rank_idx + 1}.value'] = np.NaN if rank_value == 'Unranked' else int(rank_value.replace(',', ''))
+                chunk.loc[i, f'rank-{rank_idx + 1}.is_tied'] = rank['is_tied']
+                chunk.loc[i, f'rank-{rank_idx + 1}.is_ranked'] = rank['is_ranked']
+                chunk.loc[i, f'rank-{rank_idx + 1}.label'] = rank['label']
+
+        df_by_subject = pd.concat([df_by_subject, chunk], ignore_index=True)
+
+df_by_subject.to_csv('data/best_global_universities_subject.csv', index=False)
+df_by_subject.to_excel('data/best_global_universities_subject.xlsx', index=False)
+df_by_subject.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>url</th>
+      <th>id</th>
+      <th>name</th>
+      <th>city</th>
+      <th>country_name</th>
+      <th>three_digit_country_code</th>
+      <th>ranks</th>
+      <th>stats</th>
+      <th>blurb</th>
+      <th>image_url.src</th>
+      <th>image_url.medium</th>
+      <th>image_url.large</th>
+      <th>rank-1.value</th>
+      <th>rank-1.is_tied</th>
+      <th>rank-1.is_ranked</th>
+      <th>rank-1.label</th>
+      <th>rank-2.value</th>
+      <th>rank-2.is_tied</th>
+      <th>rank-2.is_ranked</th>
+      <th>rank-2.label</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>501112</td>
+      <td>Wageningen University &amp; Research</td>
+      <td>Wageningen</td>
+      <td>Netherlands</td>
+      <td>NLD</td>
+      <td>&#91;&#123;'value': '1', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '100.0', 'label': 'Subject Score'&#125;,...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>89.0</td>
+      <td>True</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>500688</td>
+      <td>China Agricultural University</td>
+      <td>Beijing</td>
+      <td>China</td>
+      <td>CHN</td>
+      <td>&#91;&#123;'value': '2', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '96.3', 'label': 'Subject Score'&#125;, ...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>332.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>504800</td>
+      <td>Jiangnan University</td>
+      <td>Wuxi</td>
+      <td>China</td>
+      <td>CHN</td>
+      <td>&#91;&#123;'value': '3', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '93.9', 'label': 'Subject Score'&#125;, ...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>598.0</td>
+      <td>True</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>505115</td>
+      <td>South China University of Technology</td>
+      <td>Guangzhou</td>
+      <td>China</td>
+      <td>CHN</td>
+      <td>&#91;&#123;'value': '4', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '91.7', 'label': 'Subject Score'&#125;, ...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>4.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>219.0</td>
+      <td>True</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>166629</td>
+      <td>University of Massachusetts Amherst</td>
+      <td>Amherst</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '5', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '88.3', 'label': 'Subject Score'&#125;, ...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>160.0</td>
+      <td>True</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+Давайте посмотрим ТОП 10 предметных рейтингов по количеству университетов, в которых представлена 🇷🇺 Россия.
+
+
+```python
+df_by_subject[df_by_subject['three_digit_country_code'] == 'RUS'][['rank-1.label', 'id']].\
+    groupby(by='rank-1.label').count().\
+    rename(columns={'id': 'count'}).sort_values(by='count', ascending=False)
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>rank-1.label</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Best Universities for Physics</th>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Chemistry</th>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Materials Science</th>
+      <td>14</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Engineering</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Physical Chemistry</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Optics</th>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Mathematics</th>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Condensed Matter Physics</th>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Geosciences</th>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Computer Science</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Biology and Biochemistry</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Space Science</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Nanoscience and Nanotechnology</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Clinical Medicine</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Plant and Animal Science</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Arts and Humanities</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Molecular Biology and Genetics</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Microbiology</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Pharmacology and Toxicology</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Environment/Ecology</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Electrical and Electronic Engineering</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Economics and Business</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Polymer Science</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Psychiatry/Psychology</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Social Sciences and Public Health</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Mechanical Engineering</th>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 ## QS-рейтинг университетов
 
-### Основной
-
-### Предметный
 
 ## Times Higher Education
