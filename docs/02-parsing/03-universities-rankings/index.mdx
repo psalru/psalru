@@ -1,0 +1,243 @@
+---
+sidebar_label: Рейтингов университетов
+description: Парсинг международных (российских и зарубежных) рейтингов университетов
+---
+
+# Парсинг рейтингов университетов
+
+Одна из самых популярных «вузомерок» — международные рейтинги университетов. Есть российские, есть зарубежные. В данном материале собраны «рецепты» парсинга следующих рейтингов:
+
+1. [Московский рейтинг университетов — три миссии университета](https://mosiur.org/)
+1. [Рейтинг университетов Интерфакса](https://academia.interfax.ru/ru/ratings/?rating=1&year=2023&page=1)
+1. [RAEX ТОП 100](https://raex-rr.com/education/russian_universities/top-100_universities/2023/)
+1. Шанхайский рейтинг университетов
+1. [Рейтинг Best Global Universities](https://www.usnews.com/education/best-global-universities/rankings), в т.ч. по предметам
+1. QS-рейтинг университетов, в т.ч. по предметам
+1. Рейтинг университетов от Times Higher Education
+
+Рейтинги выходят (обновляются) в разное время года. На момент написания данного материала (июль 2023 г.), почти все рейтинги включали 2023 год (внимание на переменную `years`, если она используется в коде).
+
+## Московский рейтинг университетов
+
+```python showLineNumbers title="Необходимые библиотеки для данного рейтинга"
+import time
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+```
+
+
+```python showLineNumbers title="Парсим данные рейтинга"
+years = list(range(2020, 2022 + 1))
+msk_data = []
+
+for y in years:
+    # Обратите внимание на вариативность в url (последний год отличается от всех остальных)
+    msk_url = f"https://mosiur.org/{'ranking' if y == 2022 else 'ranking' + str(y)}/"
+    msk_resp = requests.get(msk_url)
+
+    if msk_resp.status_code == 200:
+        msk_soup = BeautifulSoup(msk_resp.text)
+
+        for tr in msk_soup.select('#top_table tbody tr'):
+            tds = tr.find_all('td')
+            msk_data.append({
+                'year': y,
+                'rank': tds[0].text,
+                'university': tds[1].text,
+                'country': tds[2].text
+            })
+    else:
+        print(f"{msk_url} return status code {msk_resp.status_code}")
+
+    # Бережём источник данных
+    time.sleep(1)
+
+msk_df = pd.DataFrame(msk_data)
+msk_df.to_csv(f"data/msk_{min(years)}-{max(years)}.csv", index=False)
+msk_df.to_excel(f"data/msk_{min(years)}-{max(years)}.xlsx", index=False)
+msk_df.head(5)
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>year</th>
+      <th>rank</th>
+      <th>university</th>
+      <th>country</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020</td>
+      <td>1</td>
+      <td>Harvard University</td>
+      <td>США</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2020</td>
+      <td>2</td>
+      <td>Massachusetts Institute of Technology</td>
+      <td>США</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2020</td>
+      <td>3</td>
+      <td>University of Cambridge</td>
+      <td>Великобритания</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2020</td>
+      <td>4</td>
+      <td>University of Oxford</td>
+      <td>Великобритания</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2020</td>
+      <td>5</td>
+      <td>University of Pennsylvania</td>
+      <td>США</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+Данные «Московского рейтинга» получены. Давайте посмотрим представительство стран по годам (ТОП 10).
+
+
+```python showLineNumbers title="Строим сводную таблицу по странам и годам"
+msk_pivot = pd.pivot_table(
+    msk_df,
+    index='country',
+    columns='year',
+    values='university',
+    aggfunc='count'
+)
+msk_pivot['sum'] = msk_pivot.sum(axis=1)
+msk_pivot.sort_values(by='sum', ascending=False).head(10)
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th>year</th>
+      <th>2020</th>
+      <th>2021</th>
+      <th>2022</th>
+      <th>sum</th>
+    </tr>
+    <tr>
+      <th>country</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>США</th>
+      <td>220.0</td>
+      <td>239.0</td>
+      <td>253.0</td>
+      <td>712.0</td>
+    </tr>
+    <tr>
+      <th>Китай</th>
+      <td>122.0</td>
+      <td>144.0</td>
+      <td>173.0</td>
+      <td>439.0</td>
+    </tr>
+    <tr>
+      <th>Россия</th>
+      <td>101.0</td>
+      <td>112.0</td>
+      <td>146.0</td>
+      <td>359.0</td>
+    </tr>
+    <tr>
+      <th>Великобритания</th>
+      <td>98.0</td>
+      <td>106.0</td>
+      <td>108.0</td>
+      <td>312.0</td>
+    </tr>
+    <tr>
+      <th>Япония</th>
+      <td>93.0</td>
+      <td>102.0</td>
+      <td>101.0</td>
+      <td>296.0</td>
+    </tr>
+    <tr>
+      <th>Германия</th>
+      <td>69.0</td>
+      <td>73.0</td>
+      <td>74.0</td>
+      <td>216.0</td>
+    </tr>
+    <tr>
+      <th>Италия</th>
+      <td>50.0</td>
+      <td>54.0</td>
+      <td>54.0</td>
+      <td>158.0</td>
+    </tr>
+    <tr>
+      <th>Индия</th>
+      <td>45.0</td>
+      <td>51.0</td>
+      <td>58.0</td>
+      <td>154.0</td>
+    </tr>
+    <tr>
+      <th>Испания</th>
+      <td>42.0</td>
+      <td>55.0</td>
+      <td>56.0</td>
+      <td>153.0</td>
+    </tr>
+    <tr>
+      <th>Франция</th>
+      <td>40.0</td>
+      <td>45.0</td>
+      <td>54.0</td>
+      <td>139.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+## Рейтинг Интерфакса
+
+## RAEX ТОП 100
+
+## Шанхайский рейтинг университетов
+
+## Best Global Universities
+
+### Основной
+
+### Предметный
+
+## QS-рейтинг университетов
+
+### Основной
+
+### Предметный
+
+## Times Higher Education
