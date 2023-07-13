@@ -1,0 +1,2127 @@
+---
+sidebar_label: Рейтинги университетов
+description: Парсинг международных (российских и зарубежных) рейтингов университетов
+---
+
+# Парсинг рейтингов университетов
+
+Одна из самых популярных «~~п~~вузомерок» — международные рейтинги университетов. Есть 🇷🇺 российские, есть зарубежные. В данном материале собраны 👨‍🍳 «рецепты» парсинга следующих рейтингов:
+
+1. [Московский рейтинг университетов — три миссии университета](https://mosiur.org/)
+1. [Рейтинг университетов Интерфакса](https://academia.interfax.ru/ru/ratings/?rating=1&year=2023&page=1)
+1. [RAEX ТОП 100](https://raex-rr.com/education/russian_universities/top-100_universities/2023/)
+1. [Шанхайский рейтинг университетов](https://www.shanghairanking.com/rankings/arwu/2022), в т.ч. по предметам
+1. [Рейтинг Best Global Universities](https://www.usnews.com/education/best-global-universities/rankings), в т.ч. по предметам
+1. [Рейтинг университетов от Times Higher Education](https://www.timeshighereducation.com/world-university-rankings/2023/world-ranking)
+1. QS-рейтинг университетов, в т.ч. по предметам
+
+Рейтинги выходят (обновляются) в разное время года. На момент написания данного материала (июль 2023 г.), многие рейтинги включали 2023 год (внимание на переменную `years`, если она используется в коде).
+
+## Московский рейтинг университетов
+
+```python showLineNumbers title="Необходимые библиотеки"
+import time
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+```
+
+
+```python showLineNumbers title="Парсим данные рейтинга"
+years = list(range(2020, 2022 + 1))
+msk_data = []
+
+for y in years:
+    # Обратите внимание на вариативность в url (последний год отличается от всех остальных)
+    msk_url = f"https://mosiur.org/{'ranking' if y == 2022 else 'ranking' + str(y)}/"
+    msk_resp = requests.get(msk_url)
+
+    if msk_resp.status_code == 200:
+        msk_soup = BeautifulSoup(msk_resp.text)
+
+        for tr in msk_soup.select('#top_table tbody tr'):
+            tds = tr.find_all('td')
+            msk_data.append({
+                'year': y,
+                'rank': tds[0].text,
+                'university': tds[1].text,
+                'country': tds[2].text
+            })
+    else:
+        print(f"{msk_url} return status code {msk_resp.status_code}")
+
+    # Бережём источник данных
+    time.sleep(1)
+
+msk_df = pd.DataFrame(msk_data)
+msk_df.to_csv(f"data/msk_{min(years)}-{max(years)}.csv", index=False)
+msk_df.to_excel(f"data/msk_{min(years)}-{max(years)}.xlsx", index=False)
+msk_df.head(5)
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>year</th>
+      <th>rank</th>
+      <th>university</th>
+      <th>country</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020</td>
+      <td>1</td>
+      <td>Harvard University</td>
+      <td>США</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2020</td>
+      <td>2</td>
+      <td>Massachusetts Institute of Technology</td>
+      <td>США</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2020</td>
+      <td>3</td>
+      <td>University of Cambridge</td>
+      <td>Великобритания</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2020</td>
+      <td>4</td>
+      <td>University of Oxford</td>
+      <td>Великобритания</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2020</td>
+      <td>5</td>
+      <td>University of Pennsylvania</td>
+      <td>США</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+Данные «Московского рейтинга» получены. Давайте посмотрим представительство стран по годам (ТОП 10).
+
+
+```python showLineNumbers title="Строим сводную таблицу и выводим ТОП 10"
+msk_pivot = pd.pivot_table(
+    msk_df,
+    index='country',
+    columns='year',
+    values='university',
+    aggfunc='count'
+)
+msk_pivot['sum'] = msk_pivot.sum(axis=1)
+msk_pivot.sort_values(by='sum', ascending=False).head(10)
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th>year</th>
+      <th>2020</th>
+      <th>2021</th>
+      <th>2022</th>
+      <th>sum</th>
+    </tr>
+    <tr>
+      <th>country</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>США</th>
+      <td>220.0</td>
+      <td>239.0</td>
+      <td>253.0</td>
+      <td>712.0</td>
+    </tr>
+    <tr>
+      <th>Китай</th>
+      <td>122.0</td>
+      <td>144.0</td>
+      <td>173.0</td>
+      <td>439.0</td>
+    </tr>
+    <tr>
+      <th>Россия</th>
+      <td>101.0</td>
+      <td>112.0</td>
+      <td>146.0</td>
+      <td>359.0</td>
+    </tr>
+    <tr>
+      <th>Великобритания</th>
+      <td>98.0</td>
+      <td>106.0</td>
+      <td>108.0</td>
+      <td>312.0</td>
+    </tr>
+    <tr>
+      <th>Япония</th>
+      <td>93.0</td>
+      <td>102.0</td>
+      <td>101.0</td>
+      <td>296.0</td>
+    </tr>
+    <tr>
+      <th>Германия</th>
+      <td>69.0</td>
+      <td>73.0</td>
+      <td>74.0</td>
+      <td>216.0</td>
+    </tr>
+    <tr>
+      <th>Италия</th>
+      <td>50.0</td>
+      <td>54.0</td>
+      <td>54.0</td>
+      <td>158.0</td>
+    </tr>
+    <tr>
+      <th>Индия</th>
+      <td>45.0</td>
+      <td>51.0</td>
+      <td>58.0</td>
+      <td>154.0</td>
+    </tr>
+    <tr>
+      <th>Испания</th>
+      <td>42.0</td>
+      <td>55.0</td>
+      <td>56.0</td>
+      <td>153.0</td>
+    </tr>
+    <tr>
+      <th>Франция</th>
+      <td>40.0</td>
+      <td>45.0</td>
+      <td>54.0</td>
+      <td>139.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+## Рейтинг Интерфакса
+
+```python showLineNumbers title="Необходимые библиотеки"
+import time
+import requests
+import pandas as pd
+```
+
+```python showLineNumbers title="Вспомогательная функция для парсинга данных"
+def get_interfax_list_by_year(year, page=1):
+    url = f"https://academia.interfax.ru/data/rating/?rating=1&year={year}&page={page}"
+    result = []
+    resp = requests.get(url)
+
+    # Бережём источник данных
+    time.sleep(1)
+
+    if resp.status_code == 200:
+        json_data = resp.json()
+        result += json_data['universities']
+        page_count = json_data['page_count']
+
+        if page != page_count:
+            result += get_interfax_list_by_year(year, page + 1)
+    else:
+        print(f"{url} return status code {resp.status_code}")
+
+    return result
+```
+
+
+```python showLineNumbers title="Парсим данные рейтинга"
+years = list(range(2020, 2023 + 1))
+interfax_df = pd.DataFrame()
+
+for y in years:
+    interfax_df_by_year = pd.DataFrame(get_interfax_list_by_year(y))
+    interfax_df_by_year['year'] = y
+    interfax_df = pd.concat([interfax_df, interfax_df_by_year], ignore_index=True)
+
+interfax_df.to_csv(f"data/interfax_{min(years)}-{max(years)}.csv", index=False)
+interfax_df.to_excel(f"data/interfax_{min(years)}-{max(years)}.xlsx", index=False)
+interfax_df.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>change</th>
+      <th>description</th>
+      <th>is_close</th>
+      <th>point</th>
+      <th>rank</th>
+      <th>name</th>
+      <th>id</th>
+      <th>url</th>
+      <th>year</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>None</td>
+      <td>False</td>
+      <td>1000</td>
+      <td>1</td>
+      <td>Московский государственный университет имени М...</td>
+      <td>1</td>
+      <td>https://www.msu.ru</td>
+      <td>2020</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0</td>
+      <td>None</td>
+      <td>False</td>
+      <td>963</td>
+      <td>2</td>
+      <td>Национальный исследовательский ядерный универс...</td>
+      <td>2</td>
+      <td>https://mephi.ru</td>
+      <td>2020</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0</td>
+      <td>None</td>
+      <td>False</td>
+      <td>961</td>
+      <td>3</td>
+      <td>Московский физико-технический институт (национ...</td>
+      <td>4</td>
+      <td>https://mipt.ru</td>
+      <td>2020</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0</td>
+      <td>None</td>
+      <td>False</td>
+      <td>857</td>
+      <td>4</td>
+      <td>Национальный исследовательский университет «Вы...</td>
+      <td>6</td>
+      <td>https://www.hse.ru</td>
+      <td>2020</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1</td>
+      <td>None</td>
+      <td>False</td>
+      <td>848</td>
+      <td>5</td>
+      <td>Новосибирский национальный исследовательский г...</td>
+      <td>3</td>
+      <td>http://www.nsu.ru/?lang=ru</td>
+      <td>2020</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+В данных рейтинга Интерфакса уже есть значения про движение университета в рамках рейтинга. Давайте посмотрим на ТОП 10 университетов, которые поднялись в рейтинге за последние года больше всех.
+
+
+```python showLineNumbers title="Строим сводную таблицу и выводим ТОП 10"
+interfax_pivot = pd.pivot_table(
+    interfax_df,
+    index='name',
+    columns='year',
+    values='change',
+    aggfunc='sum'
+)
+interfax_pivot['sum'] = interfax_pivot.sum(axis=1)
+interfax_pivot.sort_values(by='sum', ascending=False).head(10)
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th>year</th>
+      <th>2020</th>
+      <th>2021</th>
+      <th>2022</th>
+      <th>2023</th>
+      <th>sum</th>
+    </tr>
+    <tr>
+      <th>name</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Университет Синергия</th>
+      <td>-1.0</td>
+      <td>78.0</td>
+      <td>43.0</td>
+      <td>44.0</td>
+      <td>164.0</td>
+    </tr>
+    <tr>
+      <th>Московский институт психоанализа</th>
+      <td>-8.0</td>
+      <td>3.0</td>
+      <td>128.0</td>
+      <td>25.0</td>
+      <td>148.0</td>
+    </tr>
+    <tr>
+      <th>Чеченский государственный университет имени А.А.Кадырова</th>
+      <td>-22.0</td>
+      <td>83.0</td>
+      <td>58.0</td>
+      <td>14.0</td>
+      <td>133.0</td>
+    </tr>
+    <tr>
+      <th>Московский государственный психолого-педагогический университет</th>
+      <td>15.0</td>
+      <td>78.0</td>
+      <td>18.0</td>
+      <td>12.0</td>
+      <td>123.0</td>
+    </tr>
+    <tr>
+      <th>Уральский государственный аграрный университет</th>
+      <td>-21.0</td>
+      <td>40.0</td>
+      <td>104.0</td>
+      <td>-4.0</td>
+      <td>119.0</td>
+    </tr>
+    <tr>
+      <th>Красноярский государственный аграрный университет</th>
+      <td>-1.0</td>
+      <td>-12.0</td>
+      <td>122.0</td>
+      <td>3.0</td>
+      <td>112.0</td>
+    </tr>
+    <tr>
+      <th>Уральский государственный горный университет</th>
+      <td>25.0</td>
+      <td>17.0</td>
+      <td>21.0</td>
+      <td>48.0</td>
+      <td>111.0</td>
+    </tr>
+    <tr>
+      <th>Кировский государственный медицинский университет</th>
+      <td>25.0</td>
+      <td>12.0</td>
+      <td>31.0</td>
+      <td>40.0</td>
+      <td>108.0</td>
+    </tr>
+    <tr>
+      <th>Кубанский государственный технологический университет</th>
+      <td>24.0</td>
+      <td>18.0</td>
+      <td>61.0</td>
+      <td>-9.0</td>
+      <td>94.0</td>
+    </tr>
+    <tr>
+      <th>Государственный университет просвещения (МГОУ)</th>
+      <td>5.0</td>
+      <td>28.0</td>
+      <td>51.0</td>
+      <td>1.0</td>
+      <td>85.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+## RAEX ТОП 100
+
+```python showLineNumbers title="Необходимые библиотеки"
+import re
+import time
+import requests
+import numpy as np
+import pandas as pd
+from bs4 import BeautifulSoup
+```
+
+
+```python showLineNumbers title="Парсим данные рейтинга"
+years = list(range(2020, 2023 + 1))
+raex_list = []
+
+for y in years:
+    raex_url = f"https://raex-rr.com/pro/education/russian_universities/top-100_universities/{y}/"
+    raex_resp = requests.get(raex_url)
+
+    if raex_resp.status_code == 200:
+        raex_soup = BeautifulSoup(raex_resp.text)
+        raex_trs = raex_soup.select('#rrp_table_wrapper > table > tbody.list > tr')
+
+        for i, tr in enumerate(raex_trs):
+            th = tr.findChildren('th', recursive=False)
+            td = tr.findChildren('td', recursive=False)
+
+            raex_list.append({
+                'year': y,
+                'rank': int(th[0].text),
+                'title': re.sub(r'[\s\n]+', ' ', th[1].text).strip(),
+                'previous': float(td[0].text) if td[0].text != '-' else np.NaN,
+                'points': float(td[1].text),
+                'quality': int(td[2].text),
+                'graduates': int(td[3].text),
+                'science': int(td[4].text)
+            })
+    else:
+        print(f"{raex_url} return status code {raex_resp.status_code}")
+
+    # Бережём источник данных
+    time.sleep(1)
+
+raex_df = pd.DataFrame(raex_list)
+raex_df.to_csv(f"data/raex_{min(years)}-{max(years)}.csv", index=False)
+raex_df.to_excel(f"data/raex_{min(years)}-{max(years)}.xlsx", index=False)
+raex_df.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>year</th>
+      <th>rank</th>
+      <th>title</th>
+      <th>previous</th>
+      <th>points</th>
+      <th>quality</th>
+      <th>graduates</th>
+      <th>science</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020</td>
+      <td>1</td>
+      <td>Московский государственный университет имени М...</td>
+      <td>1.0</td>
+      <td>4.8419</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2020</td>
+      <td>2</td>
+      <td>Московский физико-технический институт (национ...</td>
+      <td>2.0</td>
+      <td>4.7734</td>
+      <td>2</td>
+      <td>7</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2020</td>
+      <td>3</td>
+      <td>Национальный исследовательский ядерный универс...</td>
+      <td>3.0</td>
+      <td>4.5535</td>
+      <td>5</td>
+      <td>5</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2020</td>
+      <td>4</td>
+      <td>Санкт-Петербургский государственный университет</td>
+      <td>4.0</td>
+      <td>4.5394</td>
+      <td>3</td>
+      <td>12</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2020</td>
+      <td>5</td>
+      <td>Национальный исследовательский университет "Вы...</td>
+      <td>5.0</td>
+      <td>4.4933</td>
+      <td>6</td>
+      <td>2</td>
+      <td>11</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+В отличие от предыдущих рейтингов, в данном рейтинге каждому университету присваивается конкретная позиция в рейтинге. Давайте посмотрим ТОП 10 лидеров по средней позиции в рейтинге за скачанные года.
+
+
+```python showLineNumbers title="Вычисляем ТОП 10 по средней позиции"
+raex_df[['title', 'rank']].groupby(by='title').mean().sort_values(by='rank').head(10)
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>rank</th>
+    </tr>
+    <tr>
+      <th>title</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Московский государственный университет имени М.В. Ломоносова</th>
+      <td>1.000000</td>
+    </tr>
+    <tr>
+      <th>Московский физико-технический институт (национальный исследовательский университет)</th>
+      <td>2.000000</td>
+    </tr>
+    <tr>
+      <th>Национальный исследовательский ядерный университет «МИФИ»</th>
+      <td>3.500000</td>
+    </tr>
+    <tr>
+      <th>Санкт-Петербургский государственный университет</th>
+      <td>3.500000</td>
+    </tr>
+    <tr>
+      <th>Национальный исследовательский университет "Высшая школа экономики"</th>
+      <td>5.250000</td>
+    </tr>
+    <tr>
+      <th>Московский государственный технический университет имени Н.Э. Баумана (национальный исследовательский университет)</th>
+      <td>6.000000</td>
+    </tr>
+    <tr>
+      <th>МГИМО МИД России</th>
+      <td>6.750000</td>
+    </tr>
+    <tr>
+      <th>Санкт-Петербургский политехнический университет Петра Великого</th>
+      <td>8.250000</td>
+    </tr>
+    <tr>
+      <th>Национальный исследовательский Томский политехнический университет</th>
+      <td>8.666667</td>
+    </tr>
+    <tr>
+      <th>Томский политехнический университет</th>
+      <td>9.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+**Обратите внимание** на то, что рейтинговое агентство RAEX «богато» на рейтинги (полный список [тут](https://raex-rr.com/all_rankings/)). Для парсинга других рейтингов, механики будут +/- аналогичные.
+
+
+## Шанхайский рейтинг университетов
+
+
+```python showLineNumbers title="Необходимые библиотеки"
+import os
+import re
+import json
+import time
+import js2py
+import requests
+import pandas as pd
+```
+
+### Общий рейтинг
+
+
+```python showLineNumbers title="Забираем данные рейтинга"
+url_ranking = 'https://www.shanghairanking.com/api/pub/v1/inst'
+resp_ranking = requests.get(url_ranking)
+ranking = pd.DataFrame()
+
+if resp_ranking.status_code == 200:
+    json_data = resp_ranking.json()
+    ranking = pd.json_normalize(json_data['data'])
+else:
+    print(f"{url_ranking} return status code {resp_ranking.status_code}")
+
+ranking.to_csv('data/shanghai.csv', index=False)
+ranking.to_excel('data/shanghai.xlsx', index=False)
+ranking.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>nameEn</th>
+      <th>univLogo</th>
+      <th>univUp</th>
+      <th>region</th>
+      <th>rankingInfo</th>
+      <th>ranking</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Harvard University</td>
+      <td>logo/032bd1b77.png</td>
+      <td>harvard-university</td>
+      <td>United States</td>
+      <td>ARWU 2022</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Stanford University</td>
+      <td>logo/13de8913b.png</td>
+      <td>stanford-university</td>
+      <td>United States</td>
+      <td>ARWU 2022</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Massachusetts Institute of Technology (MIT)</td>
+      <td>logo/79165fd8b.png</td>
+      <td>massachusetts-institute-of-technology-mit</td>
+      <td>United States</td>
+      <td>ARWU 2022</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>University of Cambridge</td>
+      <td>logo/8d9861b69.png</td>
+      <td>university-of-cambridge</td>
+      <td>United Kingdom</td>
+      <td>ARWU 2022</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>University of California, Berkeley</td>
+      <td>logo/0ff179fb8.png</td>
+      <td>university-of-california-berkeley</td>
+      <td>United States</td>
+      <td>ARWU 2022</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+Пока данных не много и можно, для примера, посмотреть ТОП 10 🇷🇺 российских университетов в рейтинге.
+
+
+```python showLineNumbers title="Выводим ТОП 10 российских университетов"
+ranking[ranking['region'] == 'Russia'][['nameEn', 'ranking']].head(10)
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>nameEn</th>
+      <th>ranking</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>114</th>
+      <td>Moscow State University</td>
+      <td>101-150</td>
+    </tr>
+    <tr>
+      <th>347</th>
+      <td>Saint Petersburg State University</td>
+      <td>301-400</td>
+    </tr>
+    <tr>
+      <th>529</th>
+      <td>Moscow Institute of Physics and Technology</td>
+      <td>501-600</td>
+    </tr>
+    <tr>
+      <th>626</th>
+      <td>HSE University</td>
+      <td>601-700</td>
+    </tr>
+    <tr>
+      <th>654</th>
+      <td>Sechenov University</td>
+      <td>601-700</td>
+    </tr>
+    <tr>
+      <th>742</th>
+      <td>Novosibirsk State University</td>
+      <td>701-800</td>
+    </tr>
+    <tr>
+      <th>753</th>
+      <td>Skolkovo Institute of Science and Technology</td>
+      <td>701-800</td>
+    </tr>
+    <tr>
+      <th>761</th>
+      <td>Tomsk State University</td>
+      <td>701-800</td>
+    </tr>
+    <tr>
+      <th>797</th>
+      <td>Ural Federal University</td>
+      <td>701-800</td>
+    </tr>
+    <tr>
+      <th>847</th>
+      <td>National Research Nuclear University MEPhI (Mo...</td>
+      <td>801-900</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+### Предметные и ретроспектива
+
+
+Для того чтобы получить данные по предметным рейтингам, а также получить ретроспективные данные, потребуется обойти все страницы университетов на сайте. Страниц много (более 3 тыс.), поэтому запасаемся терпением и ждём, переодически проверяем содержимое папки `data/downloads/shanghai`.
+
+
+```python showLineNumbers title="Сохраняем данные по университетам"
+data_folder = 'data/downloads/shanghai'
+
+for i, r in ranking.iterrows():
+    file_path = f"{data_folder}/{i+1}.json"
+
+    if not os.path.isfile(file_path):
+        university_path = r['univUp']
+        university_url = f'https://www.shanghairanking.com/institution/{university_path}'
+        html_resp = requests.get(university_url)
+
+        if html_resp.status_code == 200:
+            html = html_resp.text
+            reg = f"\/_nuxt\/static\/\d+\/institution\/{university_path}\/payload\.js"
+            payload = re.search(f"/_nuxt/static/\d+/institution/{university_path}/payload\.js", html)[0]
+            university_id = payload.replace('/_nuxt/static/', '').replace(f"/{university_path}/institution/payload.js", '')
+            js_url = f"https://www.shanghairanking.com/{payload}"
+            js_resp = requests.get(js_url)
+
+            if js_resp.status_code == 200:
+                js_data = js_resp.text
+                js_data = js2py.eval_js(js_data.replace(f'__NUXT_JSONP__("/institution/{university_path}", ', '')[:-2])
+                university_data = js_data.data[0].univData.to_dict()
+
+                with open(file_path, 'w') as f:
+                    f.write(json.dumps(university_data, ensure_ascii=False, indent=4))
+            else:
+                print(f"{university_url} return status code {html_resp.status_code}")
+        else:
+            print(f"{university_url} return status code {html_resp.status_code}")
+
+        # Бережём источник данных
+        time.sleep(0.5)
+```
+
+Каждый скачанный файл университета содержит намного больше данных, чем просто позиция в рейтинге. Для примера, посмотрим на данные одного университета из списка.
+
+
+```python showLineNumbers title="Выводим данные МГУ"
+example = json.load(open(f"{data_folder}/493.json", 'r'))
+example
+```
+```json showLineNumbers title="Данные МГУ"
+{
+    "address": "Moskovskij Gosudarstvennyj Universitet im. M.V. Lomonosova, Leninskie Gory, Moscow 119992, Russian Federation",
+    "detail": {
+        "arwu": {
+            "datasetId": 1,
+            "intro": "The Academic Ranking of World Universities (ARWU) was first published in June 2003 by the Center for World-Class Universities (CWCU), Graduate School of Education (formerly the Institute of Higher Education) of Shanghai Jiao Tong University, China, and updated on an annual basis. Since 2009 the Academic Ranking of World Universities (ARWU) has been published and copyrighted by ShanghaiRanking Consultancy. ShanghaiRanking Consultancy is a fully independent organization on higher education intelligence and not legally subordinated to any universities or government agencies. ARWU uses six objective indicators to rank world universities, including the number of alumni and staff winning Nobel Prizes and Fields Medals, number of highly cited researchers selected by Clarivate, number of articles published in journals of Nature and Science, number of articles indexed in Science Citation Index Expanded™ and Social Sciences Citation Index™ in the Web of Science™, and per capita performance of a university. More than 2500 universities are actually ranked by ARWU every year and the best 1000 are published.",
+            "latestVerNo": 2022,
+            "nameId": "ARWU",
+            "rkHistory": [
+                {"ranking": "93", "yr": 2020},
+                {"ranking": "97", "yr": 2021},
+                {"ranking": "101-150", "yr": 2022}
+            ],
+            "rkLatest": {"name": "Academic Ranking of World Universities", "ranking": "101-150"}
+        },
+        "bcur": null,
+        "gras": {
+            "latestVerNo": 2022,
+            "nameId": "GRAS",
+            "subjAdva": [
+                {"categoryCode": "RS01", "categoryNameShort": "SCI", "code": "RS0102", "name": "Physics", "ranking": "76-100"},
+                {"categoryCode": "RS02", "categoryNameShort": "ENG", "code": "RS0207", "name": "Instruments Science & Technology", "ranking": "201-300"},
+                {"categoryCode": "RS01", "categoryNameShort": "SCI", "code": "RS0101", "name": "Mathematics", "ranking": "301-400"},
+                {"categoryCode": "RS01", "categoryNameShort": "SCI", "code": "RS0103", "name": "Chemistry", "ranking": "301-400"},
+                {"categoryCode": "RS01", "categoryNameShort": "SCI", "code": "RS0106", "name": "Ecology", "ranking": "301-400"},
+                {"categoryCode": "RS02", "categoryNameShort": "ENG", "code": "RS0214", "name": "Nanoscience & Nanotechnology", "ranking": "301-400"},
+                {"categoryCode": "RS02", "categoryNameShort": "ENG", "code": "RS0220", "name": "Biotechnology", "ranking": "401-500"},
+                {"categoryCode": "RS04", "categoryNameShort": "MED", "code": "RS0401", "name": "Clinical Medicine", "ranking": "401-500"}
+            ],
+            "subjCategory": [
+                {
+                    "code": "RS01",
+                    "name": "Natural Sciences",
+                    "nameShort": "SCI",
+                    "subj": [
+                        {"code": "RS0101", "name": "Mathematics", "ranking": "301-400"},
+                        {"code": "RS0102", "name": "Physics", "ranking": "76-100"},
+                        {"code": "RS0103", "name": "Chemistry", "ranking": "301-400"},
+                        {"code": "RS0106", "name": "Ecology", "ranking": "301-400"}
+                    ]
+                },
+                {
+                    "code": "RS02",
+                    "name": "Engineering\n",
+                    "nameShort": "ENG",
+                    "subj": [
+                        {"code": "RS0207", "name": "Instruments Science & Technology", "ranking": "201-300"},
+                        {"code": "RS0214", "name": "Nanoscience & Nanotechnology", "ranking": "301-400"},
+                        {"code": "RS0220", "name": "Biotechnology", "ranking": "401-500"}
+                    ]
+                },
+                {
+                    "code": "RS04",
+                    "name": "Medical Sciences",
+                    "nameShort": "MED",
+                    "subj": [
+                        {"code": "RS0401", "name": "Clinical Medicine", "ranking": "401-500"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "foundYear": 1755,
+    "introEn": "",
+    "nameEn": "Moscow State University",
+    "programs": [],
+    "ranking": "101-150",
+    "rankingInfo": "ARWU 2022",
+    "region": "Russia",
+    "regionDetail": "Eastern Europe",
+    "studentsStatis": [
+        [
+            {"nameEn": "Total Enrollment", "ratio": "", "value": "29235"},
+            {"nameEn": "International Students", "ratio": "29.0%","value": ""}
+        ],
+        [
+            {"nameEn": "Undergraduate Enrollment", "ratio": "", "value": ""},
+            {"nameEn": "International Students", "ratio": "", "value": ""}
+        ],
+        [
+            {"nameEn": "Graduate Enrollment", "ratio": "", "value": ""},
+            {"nameEn": "International Students", "ratio": "", "value": ""}
+        ]
+    ],
+    "univLogo": "logo/98123a275.png",
+    "univUp": "moscow-state-university",
+    "website": "http://www.msu.ru"
+}
+```
+
+Для упрощения возьмём только данные связанные с ретроспективой по основному рейтингу и предметные рейтинги.
+
+
+```python showLineNumbers title="Собираем данные по ретроспективе и предметным рейтингам"
+file_numbers = sorted(list([int(x.replace('.json', '')) for x in os.listdir(data_folder)]))
+rating_retro = pd.DataFrame()
+rating_subject = pd.DataFrame()
+
+for fn in file_numbers:
+    file_path = f"{data_folder}/{fn}.json"
+    json_data = json.load(open(file_path, 'r'))
+
+    try:
+        if json_data['detail']['arwu'] and 'rkHistory' in json_data['detail']['arwu'].keys():
+            chunk_retro = pd.json_normalize(json_data['detail']['arwu']['rkHistory'])
+            chunk_retro['nameEn'], chunk_retro['region']  = json_data['nameEn'], json_data['region']
+            rating_retro = pd.concat([rating_retro, chunk_retro], ignore_index=True)
+
+        if json_data['detail']['gras']['subjAdva']:
+            chunk_subject = pd.json_normalize(json_data['detail']['gras']['subjAdva'])
+            chunk_subject['nameEn'], chunk_subject['region'] = json_data['nameEn'], json_data['region']
+            rating_subject = pd.concat([rating_subject, chunk_subject], ignore_index=True)
+    except Exception as e:
+        print(file_path, json_data['detail']['gras']['rkHistory'], json_data['detail']['gras']['subjAdva'])
+
+retro_years = list(rating_retro['yr'].unique())
+rating_retro.to_csv(f"data/shanghai_retro_{min(retro_years)}-{max(retro_years)}.csv", index=False)
+rating_retro.to_excel(f"data/shanghai_retro_{min(retro_years)}-{max(retro_years)}.xlsx", index=False)
+rating_subject.to_csv('data/shanghai_subject.csv', index=False)
+rating_retro.to_excel('data/shanghai_subject.xlsx', index=False)
+```
+
+В качестве результатов по ретроспективе, давайте посмотрим количество российских университетов по годам.
+
+
+```python showLineNumbers title="Выводим статистику по годам"
+rating_retro[rating_retro['region'] == 'Russia'][['yr', 'nameEn']].\
+    groupby(by='yr').count().rename(columns={'nameEn': 'count'})
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>yr</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2020</th>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th>2021</th>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th>2022</th>
+      <td>13</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+В предметных рейтингах выделим самые представленные области университетами 🇷🇺 России.
+
+
+```python showLineNumbers title="Выводим статистику по предметам"
+rating_subject[rating_subject['region'] == 'Russia'][['name', 'nameEn']].\
+    groupby(by='name').count().rename(columns={'nameEn': 'count'}).\
+    sort_values(by='count', ascending=False).head(10)
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>name</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Physics</th>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>Metallurgical Engineering</th>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>Biological Sciences</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>Nanoscience &amp; Nanotechnology</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>Mathematics</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>Materials Science &amp; Engineering</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>Agricultural Sciences</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>Economics</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>Pharmacy &amp; Pharmaceutical Sciences</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>Mechanical Engineering</th>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+## Best Global Universities
+
+```python showLineNumbers title="Необходимые библиотеки"
+import os
+import json
+import time
+import requests
+import numpy as np
+import pandas as pd
+from bs4 import BeautifulSoup
+```
+
+**Особенности данного рейтинга**, что на сайте не сохраняется ретроспектива. Парсить будем что есть в сейчас на сайте рейтинга (на момент написания рейтинг 2022-2023).
+
+Для начала станем немного больше похожими на браузер.
+
+
+```python showLineNumbers title="Создаём сессию для работы с сайтом"
+session = requests.session()
+session.headers.update({
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'accept-encoding': 'gzip, deflate, br',
+    'accept-language': 'ru',
+    'cache-control': 'no-cache',
+    'pragma': 'no-cache',
+    'sec-ch-ua': '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Linux"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
+})
+```
+
+### Общий рейтинг
+
+
+```python showLineNumbers title="Сборка данных общего рейтинга"
+data_list = []
+url_tpl = 'https://www.usnews.com/education/best-global-universities/search?format=json&page='
+url_first = url_tpl + '1'
+resp_first = session.get(url_first)
+
+if resp_first.status_code == 200:
+    data_first = resp_first.json()
+    total_pages = data_first['total_pages']
+    data_list += data_first['items']
+
+    for page_number in range(2, total_pages  + 1):
+        url = url_tpl + str(page_number)
+        resp = session.get(url)
+
+        if resp.status_code == 200:
+            json_data = resp.json()
+            data_list += json_data['items']
+        else:
+            print(f"{url} return status code {resp.status_code}")
+
+        # Бережём источник данных
+        time.sleep(1)
+else:
+    print(f"{url_first} return status code {resp_first.status_code}")
+
+ranking = pd.DataFrame(data_list)
+ranking.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>url</th>
+      <th>id</th>
+      <th>name</th>
+      <th>city</th>
+      <th>country_name</th>
+      <th>three_digit_country_code</th>
+      <th>ranks</th>
+      <th>stats</th>
+      <th>image_url</th>
+      <th>blurb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>166027</td>
+      <td>Harvard University</td>
+      <td>Cambridge (U.S.)</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '1', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '100.0', 'label': 'Global Score'&#125;, ...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>Founded in 1636, Harvard University is the old...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>166683</td>
+      <td>Massachusetts Institute of Technology (MIT)</td>
+      <td>Cambridge (U.S.)</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '2', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '97.7', 'label': 'Global Score'&#125;, &#123;...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>Massachusetts Institute of Technology, founded...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>243744</td>
+      <td>Stanford University</td>
+      <td>Stanford</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '3', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '95.2', 'label': 'Global Score'&#125;, &#123;...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>Stanford University was founded in 1885 and is...</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>110635</td>
+      <td>University of California Berkeley</td>
+      <td>Berkeley</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '4', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '88.7', 'label': 'Global Score'&#125;, &#123;...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>The University of California—Berkeley is situa...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>503637</td>
+      <td>University of Oxford</td>
+      <td>Oxford</td>
+      <td>United Kingdom</td>
+      <td>GBR</td>
+      <td>&#91;&#123;'value': '5', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '86.8', 'label': 'Global Score'&#125;, &#123;...</td>
+      <td>&#123;'src': 'https://www.usnews.com/object/image/0...</td>
+      <td>The exact date of the University of Oxford’s f...</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Вытащим данные про рейтинг из столбца `ranks` и сохраним результаты, а далее выстроим, для примера, производный рейтинг стран по медианной позиции университетов в рейтинге (посмотрим ТОП 10).
+
+
+```python showLineNumbers title="Приводим данные в порядок и выводим статистику по странам"
+for i, r in ranking.iterrows():
+    rank_value = r['ranks'][0]['value']
+
+    ranking.loc[i, 'ranks.value'] = np.NaN if rank_value == 'Unranked' else int(rank_value.replace(',', ''))
+    ranking.loc[i, 'ranks.is_tied'] = r['ranks'][0]['is_tied']
+    ranking.loc[i, 'ranks.is_ranked'] = r['ranks'][0]['is_ranked']
+    ranking.loc[i, 'ranks.label'] = r['ranks'][0]['label']
+
+# Сохраняем результаты
+ranking.to_csv('data/best_global_universities.csv', index=False)
+ranking.to_excel('data/best_global_universities.xlsx', index=False)
+
+# ТОП 10 стран по медиане
+ranking[['country_name', 'id', 'ranks.value']].groupby(by='country_name').agg({
+    'id': 'count',
+    'ranks.value': 'median'
+}).rename(columns={
+    'id': 'count',
+    'ranks.value': 'rank_median'
+}).sort_values(by='rank_median').head(10)
+```
+
+
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+      <th>rank_median</th>
+    </tr>
+    <tr>
+      <th>country_name</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Netherlands</th>
+      <td>15</td>
+      <td>97.5</td>
+    </tr>
+    <tr>
+      <th>Hong Kong</th>
+      <td>7</td>
+      <td>100.0</td>
+    </tr>
+    <tr>
+      <th>Switzerland</th>
+      <td>12</td>
+      <td>150.0</td>
+    </tr>
+    <tr>
+      <th>Singapore</th>
+      <td>4</td>
+      <td>231.0</td>
+    </tr>
+    <tr>
+      <th>Denmark</th>
+      <td>7</td>
+      <td>261.0</td>
+    </tr>
+    <tr>
+      <th>Australia</th>
+      <td>39</td>
+      <td>273.0</td>
+    </tr>
+    <tr>
+      <th>Belgium</th>
+      <td>11</td>
+      <td>292.0</td>
+    </tr>
+    <tr>
+      <th>Sweden</th>
+      <td>19</td>
+      <td>346.5</td>
+    </tr>
+    <tr>
+      <th>Finland</th>
+      <td>11</td>
+      <td>447.0</td>
+    </tr>
+    <tr>
+      <th>Iceland</th>
+      <td>1</td>
+      <td>452.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+### Предметные
+
+По предметам данных получается намного больше, поэтому разобьём весь процесс на этапы. Начнём со списка предметов.
+
+
+```python showLineNumbers title="Парсим список предметов"
+subjects = []
+subject_first_url = 'https://www.usnews.com/education/best-global-universities/rankings'
+subject_first_resp = session.get(subject_first_url)
+
+if subject_first_resp.status_code == 200:
+    subject_html = subject_first_resp.text
+    subject_soup = BeautifulSoup(subject_html)
+    subject_select = subject_soup.find('select', {'name': 'subject'})
+
+    for o in subject_select.find_all('option'):
+        if o['value']:
+            subjects.append({
+                'title': o.text,
+                'value': o['value']
+            })
+else:
+    print(f"{subject_first_url} return status code {subject_first_resp.status_code}")
+
+pd.DataFrame(subjects).head()
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>title</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Agricultural Sciences</td>
+      <td>agricultural-sciences</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Artificial Intelligence</td>
+      <td>artificial-intelligence</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Arts and Humanities</td>
+      <td>arts-and-humanities</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Biology and Biochemistry</td>
+      <td>biology-biochemistry</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Biotechnology and Applied Microbiology</td>
+      <td>biotechnology-applied-microbiology</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Теперь скачаем данные по тематикам и сохраним их на диске. Это займёт какое-то время, наберитесь терпения. Процесс можно отслеживать в папке, куда сохраняются данные: `data/downloads/bgu_by_subjects`.
+
+Если что-то «залипнет», останавливайте и перезапускайте процесс, в том числе, на всякий случай, блок выше, где создаётся объект `session`. Код каждый запуск будет скачивать только то, что не успел скачать в прошлый раз.
+
+
+```python showLineNumbers title="Сохраняем данные по предметным рейтигам"
+subject_data_folder = 'data/downloads/bgu_by_subjects'
+subject_url_prefix = 'https://www.usnews.com/education/best-global-universities'
+
+for i, s in enumerate(subjects):
+    subject_value = s['value']
+    subject_dir = f"{subject_data_folder}/{subject_value.replace('-', '_')}"
+
+    # Создаём папки для данных, если их не существует
+    if not os.path.exists(subject_dir):
+        os.makedirs(subject_dir)
+
+    url_subject_tpl = f"{subject_url_prefix}/{subject_value}?format=json&page="
+    first_url_subject = url_subject_tpl + '1'
+    first_resp_subject = session.get(first_url_subject)
+
+    if first_resp_subject.status_code == 200:
+        first_json_subject = first_resp_subject.json()
+        total_pages_subject = first_json_subject['total_pages']
+
+        with open(f"{subject_dir}/1.json", 'w') as f:
+            f.write(json.dumps(first_resp_subject.json()['items'], ensure_ascii=False, indent=4))
+
+        for page_number in range(2, total_pages_subject + 1):
+            subject_page_file_data = f"{subject_dir}/{page_number}.json"
+
+            if os.path.isfile(subject_page_file_data):
+                continue
+
+            url_subject = url_subject_tpl + str(page_number)
+            resp_subject = session.get(url_subject)
+
+            if resp_subject.status_code == 200:
+                with open(subject_page_file_data, 'w') as f:
+                    f.write(json.dumps(resp_subject.json()['items'], ensure_ascii=False, indent=4))
+            else:
+                print(f"{url_subject} return status code {resp_subject.status_code}")
+
+            # Бережём источник данных
+            time.sleep(1)
+    else:
+        print(f"{first_url_subject} return status code {first_resp_subject.status_code}")
+```
+
+Соберём всё в кучку из скачанных файлов.
+
+
+```python showLineNumbers title="Формируем окончательные результы"
+df_by_subject = pd.DataFrame()
+
+for s in subjects:
+    subject_value = s['value']
+    subject_dir = f"{subject_data_folder}/{subject_value.replace('-', '_')}"
+    bgu_files_numbers_in_subject = list(sorted([int(x.replace('.json', '')) for x in os.listdir(subject_dir)]))
+
+    for n in bgu_files_numbers_in_subject:
+        file_path = f"{subject_dir}/{n}.json"
+        json_data = json.load(open(file_path, 'r'))
+        chunk = pd.json_normalize(json_data)
+
+        for i, r in chunk.iterrows():
+            for rank_idx, rank in enumerate(r['ranks']):
+                rank_value = rank['value']
+                chunk.loc[i, f'rank-{rank_idx + 1}.value'] = np.NaN if rank_value == 'Unranked' else int(rank_value.replace(',', ''))
+                chunk.loc[i, f'rank-{rank_idx + 1}.is_tied'] = rank['is_tied']
+                chunk.loc[i, f'rank-{rank_idx + 1}.is_ranked'] = rank['is_ranked']
+                chunk.loc[i, f'rank-{rank_idx + 1}.label'] = rank['label']
+
+        df_by_subject = pd.concat([df_by_subject, chunk], ignore_index=True)
+
+df_by_subject.to_csv('data/best_global_universities_subject.csv', index=False)
+df_by_subject.to_excel('data/best_global_universities_subject.xlsx', index=False)
+df_by_subject.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>url</th>
+      <th>id</th>
+      <th>name</th>
+      <th>city</th>
+      <th>country_name</th>
+      <th>three_digit_country_code</th>
+      <th>ranks</th>
+      <th>stats</th>
+      <th>blurb</th>
+      <th>image_url.src</th>
+      <th>image_url.medium</th>
+      <th>image_url.large</th>
+      <th>rank-1.value</th>
+      <th>rank-1.is_tied</th>
+      <th>rank-1.is_ranked</th>
+      <th>rank-1.label</th>
+      <th>rank-2.value</th>
+      <th>rank-2.is_tied</th>
+      <th>rank-2.is_ranked</th>
+      <th>rank-2.label</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>501112</td>
+      <td>Wageningen University &amp; Research</td>
+      <td>Wageningen</td>
+      <td>Netherlands</td>
+      <td>NLD</td>
+      <td>&#91;&#123;'value': '1', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '100.0', 'label': 'Subject Score'&#125;,...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>1.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>89.0</td>
+      <td>True</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>500688</td>
+      <td>China Agricultural University</td>
+      <td>Beijing</td>
+      <td>China</td>
+      <td>CHN</td>
+      <td>&#91;&#123;'value': '2', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '96.3', 'label': 'Subject Score'&#125;, ...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>332.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>504800</td>
+      <td>Jiangnan University</td>
+      <td>Wuxi</td>
+      <td>China</td>
+      <td>CHN</td>
+      <td>&#91;&#123;'value': '3', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '93.9', 'label': 'Subject Score'&#125;, ...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>598.0</td>
+      <td>True</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>505115</td>
+      <td>South China University of Technology</td>
+      <td>Guangzhou</td>
+      <td>China</td>
+      <td>CHN</td>
+      <td>&#91;&#123;'value': '4', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '91.7', 'label': 'Subject Score'&#125;, ...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>4.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>219.0</td>
+      <td>True</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>https://www.usnews.com/education/best-global-u...</td>
+      <td>166629</td>
+      <td>University of Massachusetts Amherst</td>
+      <td>Amherst</td>
+      <td>United States</td>
+      <td>USA</td>
+      <td>&#91;&#123;'value': '5', 'is_tied': False, 'is_ranked':...</td>
+      <td>&#91;&#123;'value': '88.3', 'label': 'Subject Score'&#125;, ...</td>
+      <td></td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5.0</td>
+      <td>False</td>
+      <td>True</td>
+      <td>Best Universities for Agricultural Sciences</td>
+      <td>160.0</td>
+      <td>True</td>
+      <td>True</td>
+      <td>Best Global Universities</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+Давайте посмотрим ТОП 10 предметных рейтингов по количеству университетов, в которых представлена 🇷🇺 Россия.
+
+
+```python showLineNumbers title="Выводим статистику по предметным рейтигам"
+df_by_subject[df_by_subject['three_digit_country_code'] == 'RUS'][['rank-1.label', 'id']].\
+    groupby(by='rank-1.label').count().rename(columns={'id': 'count'}).\
+    sort_values(by='count', ascending=False).head(10)
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>rank-1.label</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Best Universities for Physics</th>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Chemistry</th>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Materials Science</th>
+      <td>14</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Engineering</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Physical Chemistry</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Optics</th>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Mathematics</th>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Condensed Matter Physics</th>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Geosciences</th>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>Best Universities for Computer Science</th>
+      <td>4</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+## Times Higher Education
+
+
+```python showLineNumbers title="Необходимые библиотеки"
+import re
+import time
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+```
+
+Для парсинга этого рейтинга тоже создаём объект `session`.
+
+
+```python showLineNumbers title="Создаём сессию для работы с сайтом"
+session = requests.session()
+session.headers.update({
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'accept-encoding': 'gzip, deflate, br',
+    'accept-language': 'ru',
+    'cache-control': 'no-cache',
+    'pragma': 'no-cache',
+    'sec-ch-ua': '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Linux"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
+})
+```
+
+Дальше собираем данные по годам.
+
+
+```python showLineNumbers title="Собираем данные по годам"
+years = range(2020, 2023 + 1)
+url_tpl = 'https://www.timeshighereducation.com/world-university-rankings/{year}/world-ranking'
+ranking = pd.DataFrame(columns=['year'])
+
+for year in years:
+    html_url = url_tpl.format(year=year)
+    html_resp = session.get(html_url)
+
+    if html_resp.status_code == 200:
+        html = html_resp.text
+        soup = BeautifulSoup(html)
+        scripts = soup.find_all('script')
+        search_words = 'init_drupal_core_settings'
+        drupal_settings_str = None
+
+        for script in scripts:
+            script_text = script.text
+
+            if script_text.find(search_words) > -1:
+                drupal_settings_str = script_text
+
+        if drupal_settings_str:
+            found = re.search(f"world_university_rankings_{year}_0__[\w\d]+\.json", drupal_settings_str)
+
+            if found:
+                data_url = f'https://www.timeshighereducation.com/sites/default/files/the_data_rankings/{found[0]}'
+                data_resp = session.get(data_url)
+
+                if data_resp.status_code == 200:
+                    data = data_resp.json()
+                    chunk = pd.json_normalize(data['data'])
+                    chunk['year'] = year
+                    ranking = pd.concat([ranking, chunk], ignore_index=True)
+                else:
+                    print(f"{data_url} return status code {data_resp.status_code}")
+    else:
+        print(f"{html_url} return status code {html_resp.status_code}")
+
+    # Бережём источник данных
+    time.sleep(1)
+
+ranking.to_csv(f"data/the_{min(years)}-{max(years)}.csv", index=False)
+ranking.to_excel(f"data/the_{min(years)}-{max(years)}.xlsx", index=False)
+ranking.head()
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>year</th>
+      <th>rank_order</th>
+      <th>rank</th>
+      <th>name</th>
+      <th>scores_overall</th>
+      <th>scores_overall_rank</th>
+      <th>scores_teaching</th>
+      <th>scores_teaching_rank</th>
+      <th>scores_research</th>
+      <th>scores_research_rank</th>
+      <th>...</th>
+      <th>stats_pc_intl_students</th>
+      <th>stats_female_male_ratio</th>
+      <th>aliases</th>
+      <th>subjects_offered</th>
+      <th>closed</th>
+      <th>unaccredited</th>
+      <th>disabled</th>
+      <th>apply_link</th>
+      <th>cta_button.link</th>
+      <th>cta_button.text</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020</td>
+      <td>10</td>
+      <td>1</td>
+      <td>University of Oxford</td>
+      <td>95.4</td>
+      <td>10</td>
+      <td>90.5</td>
+      <td>6</td>
+      <td>99.6</td>
+      <td>1</td>
+      <td>...</td>
+      <td>41%</td>
+      <td>46 : 54</td>
+      <td>University of Oxford</td>
+      <td>Accounting &amp; Finance,General Engineering,Commu...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2020</td>
+      <td>20</td>
+      <td>2</td>
+      <td>California Institute of Technology</td>
+      <td>94.5</td>
+      <td>20</td>
+      <td>92.1</td>
+      <td>2</td>
+      <td>97.2</td>
+      <td>4</td>
+      <td>...</td>
+      <td>30%</td>
+      <td>34 : 66</td>
+      <td>California Institute of Technology caltech</td>
+      <td>Languages, Literature &amp; Linguistics,Economics ...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2020</td>
+      <td>30</td>
+      <td>3</td>
+      <td>University of Cambridge</td>
+      <td>94.4</td>
+      <td>30</td>
+      <td>91.4</td>
+      <td>4</td>
+      <td>98.7</td>
+      <td>2</td>
+      <td>...</td>
+      <td>37%</td>
+      <td>47 : 53</td>
+      <td>University of Cambridge</td>
+      <td>Business &amp; Management,General Engineering,Art,...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2020</td>
+      <td>40</td>
+      <td>4</td>
+      <td>Stanford University</td>
+      <td>94.3</td>
+      <td>40</td>
+      <td>92.8</td>
+      <td>1</td>
+      <td>96.4</td>
+      <td>5</td>
+      <td>...</td>
+      <td>23%</td>
+      <td>43 : 57</td>
+      <td>Stanford University</td>
+      <td>Physics &amp; Astronomy,Computer Science,Politics ...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>NaN</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2020</td>
+      <td>50</td>
+      <td>5</td>
+      <td>Massachusetts Institute of Technology</td>
+      <td>93.6</td>
+      <td>50</td>
+      <td>90.5</td>
+      <td>5</td>
+      <td>92.4</td>
+      <td>10</td>
+      <td>...</td>
+      <td>34%</td>
+      <td>39 : 61</td>
+      <td>Massachusetts Institute of Technology</td>
+      <td>Mathematics &amp; Statistics,Languages, Literature...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 33 columns</p>
+</div>
+
+
+
+Из полученных данных соберём количество 🇷🇺 российских университетов в рейтинге по годам.
+
+
+```python showLineNumbers title="Выводим статистику по количеству университетов"
+ranking[ranking['location'] == 'Russian Federation'][['year', 'location']].\
+    groupby(by='year').count().rename(columns={'location': 'count'})
+```
+
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>year</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2020</th>
+      <td>39</td>
+    </tr>
+    <tr>
+      <th>2021</th>
+      <td>48</td>
+    </tr>
+    <tr>
+      <th>2022</th>
+      <td>100</td>
+    </tr>
+    <tr>
+      <th>2023</th>
+      <td>103</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+## QS-рейтинг университетов
+
+:::warning Сайт заблокирован
+
+Доступ к сайту данного рейтинга заблокирован по решению Пучежского районного суда (Ивановской области) [№ 2а-62/2023 от 19.01.2023](https://puchezhsky--iwn.sudrf.ru/modules.php?name=sud_delo&srv_num=1&name_op=case&case_id=86330472&case_uid=3e312afb-7355-4c11-8db4-c4f035377b3d&delo_id=41&new=0). С учётом этого, а также политизированной позиции в отношении 🇷🇺 Российских университетов руководителей рейтинга, ниже представленный код **публикуется без проверки**.
+
+:::
+
+По каким-то причинам на сайте суда `<данные изъяты>` и не видно доменного имени, может потребоваться эта [ссылка](https://eais.rkn.gov.ru/) на реестр Роскомнадзора. В поле «Искомый ресурс» укажите — `www.topuniversities.com`.
+
+```python showLineNumbers title="Общий рейтинг"
+import json
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+
+year = 2022
+page_url = f'https://www.topuniversities.com/university-rankings/world-university-rankings/{year}'
+page_resp = requests.get(page_url)
+
+if page_resp.status_code == 200:
+    page_html = page_resp.text
+    page_soup = BeautifulSoup(page_html)
+    drupal_settings = page_soup.find('script', attrs={'data-drupal-selector': 'drupal-settings-json'}).text
+    drupal_settings_json = json.loads(drupal_settings)
+    nid = drupal_settings_json['statistics']['data']['nid']
+    rank_resp = requests.get(f"https://www.topuniversities.com/rankings/endpoint?nid={nid}&page=0&items_per_page=2000")
+
+    if rank_resp.status_code == 200:
+        rank_json = rank_resp.json()
+        df = pd.json_normalize(rank_json['score_nodes'])
+```
+
+```python showLineNumbers title="Предметный рейтинг"
+import json
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+
+year = 2022
+page_url = f'https://www.topuniversities.com/university-rankings/university-subject-rankings/{year}/natural-sciences'
+page_resp = requests.get(page_url)
+subjects = []
+result = pd.DataFrame()
+
+if page_resp.status_code == 200:
+    page_html = page_resp.text
+    page_soup = BeautifulSoup(page_html)
+    subject_el = page_soup.find('select', {'id': 'qsrankingsubject'})
+
+    for g in subject_el.find_all('optgroup'):
+        for o in g.find_all('option'):
+            subjects.append({
+                'group': g['label'],
+                'subject': o.text,
+                'url': o['value']
+            })
+
+for i, s in enumerate(subjects):
+    print(i, s['group'], '-', s['subject'])
+
+    s_resp = requests.get(f"https://www.topuniversities.com/{s['url']}")
+
+    if s_resp.status_code == 200:
+        s_html = s_resp.text
+        s_soup = BeautifulSoup(s_html)
+        drupal_settings = s_soup.find('script', attrs={'data-drupal-selector': 'drupal-settings-json'}).text
+        drupal_settings_json = json.loads(drupal_settings)
+        rank_url = drupal_settings_json['qs_rankings_datatables']['rank_url']
+        rank_resp = requests.get(rank_url)
+
+        if rank_resp.status_code == 200:
+            rank_json = rank_resp.json()
+            df = pd.json_normalize(rank_json['data'])
+
+            for i, r in df.iterrows():
+                title_html = r['title']
+                title_soup = BeautifulSoup(title_html)
+                df.loc[i, 'title'] = title_soup.text
+                df.loc[i, 'url'] = f"https://www.topuniversities.com{title_soup.a['href']}"
+
+            df['group'] = s['group']
+            df['subject'] = s['subject']
+
+            result = pd.concat([result, df], ignore_index=True)
+```
+
+## Исходники и данные
+
+Исходные Jupiter Notebook-и для данной страницы находится в папке по [ссылке](https://github.com/psalru/analytics/tree/master/PSAL-21_rating_parsing) в Github.
+
+Получившиеся **наборы данных**, на момент написания, вы можете скачать по ссылкам ниже:
+
+1. Московский рейтинг университетов — три миссии университета: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/msk_2020-2022.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/msk_2020-2022.xlsx)
+1. Рейтинг университетов Интерфакса: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/interfax_2020-2023.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/interfax_2020-2023.xlsx)
+1. RAEX ТОП 100: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/raex_2020-2023.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/raex_2020-2023.xlsx)
+1. Шанхайский рейтинг университетов:
+    * Общий: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/shanghai.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/shanghai.xlsx)
+    * Общий с ретроспективой: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/shanghai_retro_2020-2022.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/shanghai_retro_2020-2022.xlsx)
+    * Предметный ректинг: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/shanghai_subject.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/shanghai_subject.xlsx)
+1. Best Global Universities:
+    * Общий: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/best_global_universities.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/best_global_universities.xlsx)
+    * Предметный: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/best_global_universities_subject.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/best_global_universities_subject.xlsx)
+1. Times Higher Education: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/the_2020-2023.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/the_2020-2023.xlsx)
