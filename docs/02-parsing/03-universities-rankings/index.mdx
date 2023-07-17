@@ -985,18 +985,15 @@ for fn in file_numbers:
     file_path = f"{data_folder}/{fn}.json"
     json_data = json.load(open(file_path, 'r'))
 
-    try:
-        if json_data['detail']['arwu'] and 'rkHistory' in json_data['detail']['arwu'].keys():
-            chunk_retro = pd.json_normalize(json_data['detail']['arwu']['rkHistory'])
-            chunk_retro['nameEn'], chunk_retro['region']  = json_data['nameEn'], json_data['region']
-            rating_retro = pd.concat([rating_retro, chunk_retro], ignore_index=True)
+    if json_data['detail']['arwu'] and 'rkHistory' in json_data['detail']['arwu'].keys():
+        chunk_retro = pd.json_normalize(json_data['detail']['arwu']['rkHistory'])
+        chunk_retro['nameEn'], chunk_retro['region']  = json_data['nameEn'], json_data['region']
+        rating_retro = pd.concat([rating_retro, chunk_retro], ignore_index=True)
 
-        if json_data['detail']['gras']['subjAdva']:
-            chunk_subject = pd.json_normalize(json_data['detail']['gras']['subjAdva'])
-            chunk_subject['nameEn'], chunk_subject['region'] = json_data['nameEn'], json_data['region']
-            rating_subject = pd.concat([rating_subject, chunk_subject], ignore_index=True)
-    except Exception as e:
-        print(file_path, json_data['detail']['gras']['rkHistory'], json_data['detail']['gras']['subjAdva'])
+    if json_data['detail']['gras']['subjAdva']:
+        chunk_subject = pd.json_normalize(json_data['detail']['gras']['subjAdva'])
+        chunk_subject['nameEn'], chunk_subject['region'] = json_data['nameEn'], json_data['region']
+        rating_subject = pd.concat([rating_subject, chunk_subject], ignore_index=True)
 
 retro_years = list(rating_retro['yr'].unique())
 rating_retro.to_csv(f"data/shanghai_retro_{min(retro_years)}-{max(retro_years)}.csv", index=False)
@@ -2056,56 +2053,68 @@ if page_resp.status_code == 200:
 
 ```python showLineNumbers title="Предметный рейтинг"
 import json
+import time
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 
+# Собираем список предметов
+
 year = 2022
-page_url = f'https://www.topuniversities.com/university-rankings/university-subject-rankings/{year}/natural-sciences'
-page_resp = requests.get(page_url)
+first_url = f"https://www.topuniversities.com/university-rankings/university-subject-rankings/{year}/natural-sciences"
+first_resp = requests.get(first_url)
 subjects = []
-result = pd.DataFrame()
 
-if page_resp.status_code == 200:
-    page_html = page_resp.text
-    page_soup = BeautifulSoup(page_html)
-    subject_el = page_soup.find('select', {'id': 'qsrankingsubject'})
+if first_resp.status_code == 200:
+    first_html = first_resp.text
+    first_soup = BeautifulSoup(first_html)
+    drupal_settings = first_soup.find('script', attrs={'data-drupal-selector': 'drupal-settings-json'}).text
+    drupal_settings_json = json.loads(drupal_settings)
+    first_nid = drupal_settings_json['qs_rankings_rest_api']['nid']
+    subject_url = f"https://www.topuniversities.com/rankings/filter/endpoint?nid={first_nid}"
+    subject_resp = requests.get(subject_url)
 
-    for g in subject_el.find_all('optgroup'):
-        for o in g.find_all('option'):
-            subjects.append({
-                'group': g['label'],
-                'subject': o.text,
-                'url': o['value']
-            })
+    if subject_resp.status_code == 200:
+        subject_json = subject_resp.json()
+
+        for c, subjects_list in subject_json['subjects'].items():
+            for s in subjects_list:
+                subjects.append({'category': c, 'name': s['name'], 'url': s['url']})
+    else:
+        print(f"{subject_resp} return status code {subject_resp.status_code}")
+else:
+    print(f"{first_url} return status code {first_resp.status_code}")
+
+# Забираем данные по категориям
+
+ranking = pd.DataFrame(columns=['subject_category', 'subject'])
 
 for i, s in enumerate(subjects):
-    print(i, s['group'], '-', s['subject'])
+    url = f"https://www.topuniversities.com/{s['url']}"
+    resp = requests.get(url)
 
-    s_resp = requests.get(f"https://www.topuniversities.com/{s['url']}")
-
-    if s_resp.status_code == 200:
-        s_html = s_resp.text
-        s_soup = BeautifulSoup(s_html)
-        drupal_settings = s_soup.find('script', attrs={'data-drupal-selector': 'drupal-settings-json'}).text
+    if resp.status_code == 200:
+        html = resp.text
+        soup = BeautifulSoup(html)
+        drupal_settings = soup.find('script', attrs={'data-drupal-selector': 'drupal-settings-json'}).text
         drupal_settings_json = json.loads(drupal_settings)
-        rank_url = drupal_settings_json['qs_rankings_datatables']['rank_url']
-        rank_resp = requests.get(rank_url)
+        nid = drupal_settings_json['qs_rankings_rest_api']['nid']
+        url_subject = f"https://www.topuniversities.com/rankings/endpoint?nid={nid}&items_per_page=10000&tab=?&page=0"
+        resp_subject = requests.get(url_subject)
 
-        if rank_resp.status_code == 200:
-            rank_json = rank_resp.json()
-            df = pd.json_normalize(rank_json['data'])
+        if resp_subject.status_code == 200:
+            json_subject = resp_subject.json()
+            chunk_subject = pd.json_normalize(json_subject['score_nodes'])
+            chunk_subject['subject_category'] = s['category']
+            chunk_subject['subject'] = s['name']
+            ranking = pd.concat([ranking, chunk_subject], ignore_index=True)
+        else:
+            print(f"{url_subject} return status code {resp_subject.status_code}")
+    else:
+        print(f"{url} return status code {resp.status_code}")
 
-            for i, r in df.iterrows():
-                title_html = r['title']
-                title_soup = BeautifulSoup(title_html)
-                df.loc[i, 'title'] = title_soup.text
-                df.loc[i, 'url'] = f"https://www.topuniversities.com{title_soup.a['href']}"
-
-            df['group'] = s['group']
-            df['subject'] = s['subject']
-
-            result = pd.concat([result, df], ignore_index=True)
+    print(f"{i}/{len(subjects)}: {s['name']} is done!", end='\r')
+    time.sleep(1)
 ```
 
 ## Исходники и данные
