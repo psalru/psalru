@@ -1,0 +1,10 @@
+User-agent: Yandex
+Allow: /
+
+User-agent: Google
+Allow: /
+
+User-agent: *
+Allow: /
+
+Host: https://psal.ru/
