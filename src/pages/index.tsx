@@ -12,7 +12,7 @@ function HomepageHeader() {
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
-        <h1 className="hero__title">{siteConfig.title}</h1>
+        <h1 className="hero__title">Аналитика высшего образования</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <div className={styles.buttons}>
           <Link
@@ -30,7 +30,7 @@ export default function Home(): JSX.Element {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`ПСАЛ | ${siteConfig.title}`}
+      title='Аналитика высшего образования'
       description="Анализ высшего образования и университетов, на базе вузов — участников программ «Приоритет 2030» и «Передовые инженерные школы»">
       <HomepageHeader />
       <main>
