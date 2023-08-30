@@ -124,6 +124,10 @@ const config = {
                 label: 'Передовые инженерные школы',
                 href: 'https://engineers2030.ru',
               },
+              {
+                label: 'АНО «ЦРО «Интеграция»',
+                href: 'https://integration.institute',
+              }
             ],
           },
         ],
