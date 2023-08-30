@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkdocusaurus=self.webpackChunkdocusaurus||[]).push([[535],{5641:e=>{e.exports=JSON.parse('{"title":"\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0438 \u0437\u0430\u043f\u0438\u0441\u0438","items":[{"title":"\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440 \ud83d\udc4b","permalink":"/blog/hello-world"}]}')}}]);
