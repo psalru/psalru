@@ -7,18 +7,14 @@ description: Парсинг показателей университетов «
 
 Для разных целей может понадобиться сводная таблица с текущими значениями, отражающими показатели университетов — участников программы «Приоритет 2030». Ниже представленное позволяет собрать всё в один файл.
 
-Надо оговориться, что полученная сборка **не содержит данные по треку «Дальний Восток»**, т.к. на начало мая 2023 года, университеты по данному треку отсутствуют на сайте.
 
 ```python showLineNumbers title="Импорты и начальные настройки"
 import time
 import requests
 import pandas as pd
 
-# Создаём объект сессии для работы с сайтом
-session = requests.session()
-# На всякий случай зайдём на главную за печеньками
-home_resp = session.get('https://priority2030.ru/')
-is_everything_okay = home_resp.status_code == 200
+data_folder = '../data/PSAL-19'
+url_base = 'https://api.socio.center/public/priority'  # Базовая ссылка на API
 ```
 
 ## Список университетов
@@ -27,23 +23,25 @@ is_everything_okay = home_resp.status_code == 200
 
 
 ```python showLineNumbers title="Формируем список университетов"
-university_list_resp = session.get('https://lk.priority2030.ru/api/v0/priority/list')
+url_list = f"{url_base}/list"
+university_list_resp = requests.get(url_list)
 university_list = pd.DataFrame()
 
-if is_everything_okay and university_list_resp.status_code == 200:
-    university_list_json = university_list_resp.json()
+if university_list_resp.status_code == 200:
+    university_list_json_data = university_list_resp.json()
 
-    if university_list_json['status'] == 'success':
-        university_list = pd.json_normalize(university_list_json['data']['participants'])
+    if university_list_json_data['status'] == 'success':
+        university_list = pd.DataFrame(university_list_json_data['data']['participants'])
+        university_list['group'] = university_list['group'].apply(lambda x: university_list_json_data['data']['group'][x])
+        
+        # Сохраняем полученный список университетов
+        university_list.to_csv(f"{data_folder}/university_list.csv", index=False)
+        university_list.to_excel(f"{data_folder}/university_list.xlsx", index=False)
+else:
+    raise Exception(f"{url_list} return status code {university_list_resp.status_code}")
 
-# Небольшие улучшения данных
-university_list = university_list.rename(columns={'special': 'type'})
-university_list['type'] = university_list['type'].apply(lambda x: x if x != '' else 'Базовая часть')
-
-# Сохраняем полученный список университетов
-university_list.to_csv('data/university_list.csv', index=False)
-# Посмотрим количество по трекам
-university_list[['type', 'id']].groupby(by='type').count().rename(columns={'id': 'count'})
+# Выводим первые 10 записей
+university_list.head(10)
 ```
 
 
@@ -51,25 +49,159 @@ university_list[['type', 'id']].groupby(by='type').count().rename(columns={'id':
   <thead>
     <tr>
       <th></th>
-      <th>count</th>
-    </tr>
-    <tr>
-      <th>type</th>
-      <th></th>
+      <th>id</th>
+      <th>name</th>
+      <th>shortName</th>
+      <th>city</th>
+      <th>location</th>
+      <th>region</th>
+      <th>regionCode</th>
+      <th>founder</th>
+      <th>state</th>
+      <th>level</th>
+      <th>group</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <th>Базовая часть</th>
-      <td>73</td>
+      <th>0</th>
+      <td>rmpvygmvxo</td>
+      <td>Федеральное государственное автономное образов...</td>
+      <td>МФТИ</td>
+      <td>Москва</td>
+      <td>Москва</td>
+      <td>Центральный</td>
+      <td>central</td>
+      <td>Министерство науки и высшего образования Росси...</td>
+      <td>participant</td>
+      <td>1</td>
+      <td>Участники программы (основной трек)</td>
     </tr>
     <tr>
-      <th>Исследовательское лидерство</th>
-      <td>17</td>
+      <th>1</th>
+      <td>qkaxxbqxbm</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>ОГУ</td>
+      <td>Оренбург</td>
+      <td>Оренбургская область</td>
+      <td>Приволжский</td>
+      <td>volga</td>
+      <td>Министерство науки и высшего образования Росси...</td>
+      <td>participant</td>
+      <td>base</td>
+      <td>Участники программы (основной трек)</td>
     </tr>
     <tr>
-      <th>Территориальное/отраслевое лидерство</th>
-      <td>31</td>
+      <th>2</th>
+      <td>vbclqozcgs</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>ВятГУ</td>
+      <td>Киров</td>
+      <td>Кировская область</td>
+      <td>Приволжский</td>
+      <td>volga</td>
+      <td>Министерство науки и высшего образования Росси...</td>
+      <td>participant</td>
+      <td>base</td>
+      <td>Участники программы (основной трек)</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>krdeociohk</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>ЮРГПУ(НПИ)</td>
+      <td>Новочеркасск</td>
+      <td>Ростовская область</td>
+      <td>Южный</td>
+      <td>south</td>
+      <td>Министерство науки и высшего образования Росси...</td>
+      <td>participant</td>
+      <td>base</td>
+      <td>Участники программы (основной трек)</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>fgnzen3sxz</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>ТГУ имени Г.Р. Державина</td>
+      <td>Тамбов</td>
+      <td>Тамбовская область</td>
+      <td>Центральный</td>
+      <td>central</td>
+      <td>Министерство науки и высшего образования Росси...</td>
+      <td>participant</td>
+      <td>base</td>
+      <td>Участники программы (основной трек)</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>7mzkpv35zl</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>НИУ МГСУ</td>
+      <td>Москва</td>
+      <td>Москва</td>
+      <td>Центральный</td>
+      <td>central</td>
+      <td>Министерство науки и высшего образования Росси...</td>
+      <td>participant</td>
+      <td>2</td>
+      <td>Участники программы (основной трек)</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>ezg3l1cmfo</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>ТулГУ</td>
+      <td>Тула</td>
+      <td>Тульская область</td>
+      <td>Центральный</td>
+      <td>central</td>
+      <td>Министерство науки и высшего образования Росси...</td>
+      <td>participant</td>
+      <td>base</td>
+      <td>Участники программы (основной трек)</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>tj72fyldee</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>СПбГУПТД</td>
+      <td>Санкт-Петербург</td>
+      <td>Санкт-Петербург</td>
+      <td>Северо-Западный</td>
+      <td>north</td>
+      <td>Министерство науки и высшего образования Росси...</td>
+      <td>participant</td>
+      <td>base</td>
+      <td>Участники программы (основной трек)</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>heo0www7bu</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>ФГБОУ ВО Вавиловский университет</td>
+      <td>Саратов</td>
+      <td>Саратовская область</td>
+      <td>Приволжский</td>
+      <td>volga</td>
+      <td>Министерство сельского хозяйства Российской Фе...</td>
+      <td>participant</td>
+      <td>base</td>
+      <td>Участники программы (основной трек)</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>vt81dqczsu</td>
+      <td>Федеральное государственное бюджетное образова...</td>
+      <td>ФГБОУ ВО "ПИМУ" Минздрава России</td>
+      <td>Нижний Новгород</td>
+      <td>Нижегородская область</td>
+      <td>Приволжский</td>
+      <td>volga</td>
+      <td>Министерство здравоохранения Российской Федерации</td>
+      <td>participant</td>
+      <td>2</td>
+      <td>Участники программы (основной трек)</td>
     </tr>
   </tbody>
 </table>
@@ -77,66 +209,66 @@ university_list[['type', 'id']].groupby(by='type').count().rename(columns={'id':
 
 ## Показатели программы
 
-Чтобы не перегружать сайт «Приоритет 2030», по каждому университету данный собираются **с задержкой в 0,5 секунды** (относитесь с заботой к источникам своих данных 🤗), соответственно собирается всё около 1-2 минут.
+Чтобы не перегружать API сайта «Приоритет 2030», по каждому университету данный собираются **с задержкой в 0,5 секунды** (относитесь с заботой к источникам своих данных 🤗), соответственно собирается всё около 3-5 минут.
 
 
 ```python showLineNumbers title="Собираем показатели программы по университетам"
-university_kpis = pd.DataFrame()
+university_columns = ['ID университета', 'Университет', 'Город', 'Регион', 'Ведомство']
+university_kpis = pd.DataFrame(columns=university_columns)
+university_kpis_components = pd.DataFrame(columns=university_columns)   
 
-for i, university in university_list.iterrows():
-    university_id = university['id']
-    resp = session.get(f"https://lk.priority2030.ru/api/v0/priority/{university_id}/indicator")
+def get_df_by_indicator(d: dict) -> pd.DataFrame:
+    result = pd.DataFrame(index=[str(x) for x in d['labels']], columns=['Индикатор'])
+    
+    for el in d['data']:
+        chunk = pd.DataFrame({'year': [str(x) for x in el['data'].keys()], f"{el['description']}": el['data'].values()}).set_index('year')
+        result = result.merge(chunk, how='left', left_index=True, right_index=True)
+        
+    result['Индикатор'] = d['indicator']
+    
+    return result.reset_index().rename(columns={'index': 'Год'})
 
-    if is_everything_okay and resp.status_code == 200:
+
+def get_df_by_group(d: dict) -> pd.DataFrame:
+    result = pd.DataFrame(columns=['Группа'])
+    
+    for indicator in d['elements']:
+        result = pd.concat([result, get_df_by_indicator(indicator)], ignore_index=True)
+        
+    result['Группа'] = d['name']
+    
+    return result
+
+
+for idx, r in university_list.iterrows():
+    university_id, university_short_name = r['id'], r['shortName']
+    url_kpi = f"{url_base}/{university_id}/indicators"
+    resp = requests.get(url_kpi)
+    
+    if resp.status_code == 200:
         json_data = resp.json()
 
         if json_data['status'] == 'success':
-            kpi_list = list(range(0, len(json_data['data'])))
-
-            for kpi_index in kpi_list:
-                kpi_type = 'Базовая часть'
-                elements = pd.json_normalize(json_data['data'][kpi_index]['elements'])
-
-                for j, kpi in elements.sort_values(by='indicator').iterrows():
-                        data_ids = {}
-
-                        # В API какая-то дичь творится...
-                        # Далее будет использоваться только «Отражение факта» и «План», но есть ещё и «Факт» 🤷‍♂️
-                        for data_id, data_item in enumerate(kpi['data']):
-                            data_ids[data_item['description']] = data_id
-
-                        for key, value in kpi['data'][data_ids['Отражение факта']]['data'].items():
-                            if value is not None:
-                                plan = kpi['data'][data_ids['План']]['data'][key]
-
-                                # Выясняем трек по спец. части
-                                if kpi_index > 0:
-                                    kpi_postfix = kpi['indicator'].split('_')[1]
-                                    kpi_type = 'Исследовательское лидерство' if kpi_postfix == 'с1' else 'Территориальное/отраслевое лидерство'
-
-                                university_kpis = pd.concat([university_kpis, pd.DataFrame([{
-                                    'id': university_id,
-                                    'university': university['shortName'],
-                                    'type': kpi_type,
-                                    'indicator': kpi['indicator'],
-                                    'unit': kpi['unit'],
-                                    'year': key,
-                                    'plan': plan,
-                                    'fact': value,
-                                    'percent': round(value / plan, 2) if plan else 0,
-                                    'description': kpi['description'],
-                                    'formula': kpi['formula'],
-                                    'calculation_method': kpi['calculationMethod']
-                                }])])
-
+            for group in json_data['data']:
+                df_by_group = get_df_by_group(group)
+                df_by_group[['ID университета', 'Университет', 'Город', 'Регион', 'Ведомство']] = r[['id', 'shortName', 'city', 'location', 'founder']]
+                university_kpis = pd.concat([university_kpis, df_by_group])
+            
+    else:
+        raise Exception(f"{url_kpi} return status code {resp.status_code}")
+        
     time.sleep(0.5)
 
-# Сохраняем получившуюся сборку
-university_kpis.to_csv('data/university_kpis.csv', index=False)
+# Сохраняем полученный список университетов
+university_kpis.to_csv(f"{data_folder}/university_kpis.csv", index=False)
+university_kpis.to_excel(f"{data_folder}/university_kpis.xlsx", index=False)
 ```
 
 ## Исходники и данные
 
 Вроде бы всё 👍 Исходный Jupiter Notebook для данной страницы находится по данной [ссылке](https://github.com/psalru/analytics/blob/master/PSAL-19_parse_kpi_from_site_p2030/parse_university_kpis.ipynb) в Github.
 
-Получившийся **набор данных**, на момент написания, вы можете ⬇️ скачать по [данной ссылке](https://storage.yandexcloud.net/psal.public/datasets/2023-05-03_universities_kpis_from_p2030_site.xlsx).
+Получившиеся **набор данных**, на момент написания, вы можете скачать по ссылкам:
+
+* Список университетов ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/2023-11-08_universities_list_p2030_site.csv) и/или ⬇️ [excel](https://storage.yandexcloud.net/psal.public/datasets/2023-11-08_universities_list_p2030_site.xlsx).
+* Индикаторы университетов ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/2023-11-08_universities_kpis_from_p2030_site.csv) и/или ⬇️ [excel](https://storage.yandexcloud.net/psal.public/datasets/2023-11-08_universities_kpis_from_p2030_site.xlsx).
