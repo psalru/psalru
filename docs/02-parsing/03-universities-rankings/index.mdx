@@ -1735,6 +1735,8 @@ df_by_subject[df_by_subject['three_digit_country_code'] == 'RUS'][['rank-1.label
 
 ## Times Higher Education
 
+### Общйи рейтинг
+
 
 ```python showLineNumbers title="Необходимые библиотеки"
 import re
@@ -1765,13 +1767,13 @@ session.headers.update({
     'upgrade-insecure-requests': '1',
     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
 })
+years = range(2020, 2024 + 1)
 ```
 
 Дальше собираем данные по годам.
 
 
 ```python showLineNumbers title="Собираем данные по годам"
-years = range(2020, 2023 + 1)
 url_tpl = 'https://www.timeshighereducation.com/world-university-rankings/{year}/world-ranking'
 ranking = pd.DataFrame(columns=['year'])
 
@@ -1810,7 +1812,7 @@ for year in years:
         print(f"{html_url} return status code {html_resp.status_code}")
 
     # Бережём источник данных
-    time.sleep(1)
+    time.sleep(0.5)
 
 ranking.to_csv(f"data/the_{min(years)}-{max(years)}.csv", index=False)
 ranking.to_excel(f"data/the_{min(years)}-{max(years)}.xlsx", index=False)
@@ -2012,10 +2014,394 @@ ranking[ranking['location'] == 'Russian Federation'][['year', 'location']].\
       <th>2023</th>
       <td>103</td>
     </tr>
+    <tr>
+      <th>2024</th>
+      <td>108</td>
+    </tr>
   </tbody>
 </table>
 </div>
 
+### Предметные
+
+Код практически идентичен предыдущему, только появляется обход по каждому предмету рейтингу.
+
+```python showLineNumbers title="Предметный рейтинг"
+url_subject_tpl = 'https://www.timeshighereducation.com/world-university-rankings/{year}/subject-ranking/{subject}'
+ranking_subject = pd.DataFrame(columns=['year', 'subject'])
+subject_map = [
+    {'title': 'Arts & humanities', 'url_suffix': 'arts-and-humanities', 'file_prefix': 'arts_humanities_rankings'},
+    {'title': 'Business & economics', 'url_suffix': 'business-and-economics', 'file_prefix': 'business_economics_rankings'},
+    {'title': 'Clinical & health', 'url_suffix': 'clinical-pre-clinical-health', 'file_prefix': 'clinical_pre_clinical_health_ran'},
+    {'title': 'Computer science', 'url_suffix': 'computer-science', 'file_prefix': 'computer_science_rankings'},
+    {'title': 'Education', 'url_suffix': 'education', 'file_prefix': 'education_rankings'},
+    {'title': 'Engineering', 'url_suffix': 'engineering-and-it', 'file_prefix': 'engineering_technology_rankings'},
+    {'title': 'Law', 'url_suffix': 'law', 'file_prefix': 'law_rankings'},
+    {'title': 'Life sciences', 'url_suffix': 'life-sciences', 'file_prefix': 'life_sciences_rankings'},
+    {'title': 'Physical sciences', 'url_suffix': 'physical-sciences', 'file_prefix': 'physical_sciences_rankings'},
+    {'title': 'Psychology', 'url_suffix': 'psychology', 'file_prefix': 'psychology_rankings'},
+    {'title': 'Social sciences', 'url_suffix': 'social-sciences', 'file_prefix': 'social_sciences_rankings'}
+]
+
+for year in years:
+    for subject in subject_map:
+        html_url = url_subject_tpl.format(year=year, subject=subject['url_suffix'])
+        html_resp = session.get(html_url)
+
+        if html_resp.status_code == 200:
+            html = html_resp.text
+            soup = BeautifulSoup(html)
+            scripts = soup.find_all('script')
+            search_words = 'init_drupal_core_settings'
+            drupal_settings_str = None
+
+            for script in scripts:
+                script_text = script.text
+
+                if script_text.find(search_words) > -1:
+                    drupal_settings_str = script_text
+
+            if drupal_settings_str:
+                found = re.search(f"{subject['file_prefix']}_{year}_0__[\w\d]+\.json", drupal_settings_str)
+
+                if found:
+                    data_url = f'https://www.timeshighereducation.com/sites/default/files/the_data_rankings/{found[0]}'
+                    data_resp = session.get(data_url)
+
+                    if data_resp.status_code == 200:
+                        data = data_resp.json()
+                        chunk = pd.json_normalize(data['data'])
+                        chunk[['year', 'subject']] = year, subject['title']
+                        ranking_subject = pd.concat([ranking_subject, chunk], ignore_index=True)
+                    else:
+                        print(f"{data_url} return status code {data_resp.status_code}")
+        else:
+            print(f"{html_url} return status code {html_resp.status_code}")
+
+        # Бережём источник данных
+        time.sleep(0.5)
+
+ranking_subject.to_csv(f"data/the_{min(years)}-{max(years)}_subject.csv", index=False)
+ranking_subject.to_excel(f"data/the_{min(years)}-{max(years)}_subject.xlsx", index=False)
+ranking_subject.head()
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>year</th>
+      <th>subject</th>
+      <th>rank_order</th>
+      <th>rank</th>
+      <th>name</th>
+      <th>scores_overall</th>
+      <th>scores_overall_rank</th>
+      <th>scores_citations</th>
+      <th>scores_citations_rank</th>
+      <th>scores_industry_income</th>
+      <th>...</th>
+      <th>stats_pc_intl_students</th>
+      <th>stats_female_male_ratio</th>
+      <th>aliases</th>
+      <th>subjects_offered</th>
+      <th>closed</th>
+      <th>unaccredited</th>
+      <th>disabled</th>
+      <th>cta_button.link</th>
+      <th>cta_button.text</th>
+      <th>apply_link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020</td>
+      <td>Arts &amp; humanities</td>
+      <td>10</td>
+      <td>1</td>
+      <td>Stanford University</td>
+      <td>89.9</td>
+      <td>10</td>
+      <td>80.9</td>
+      <td>6</td>
+      <td>72.4</td>
+      <td>...</td>
+      <td>23%</td>
+      <td>43 : 57</td>
+      <td>Stanford University</td>
+      <td>History, Philosophy &amp; Theology,Art, Performing...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2020</td>
+      <td>Arts &amp; humanities</td>
+      <td>20</td>
+      <td>2</td>
+      <td>University of Cambridge</td>
+      <td>86.7</td>
+      <td>20</td>
+      <td>62.8</td>
+      <td>144</td>
+      <td>58.8</td>
+      <td>...</td>
+      <td>37%</td>
+      <td>47 : 53</td>
+      <td>University of Cambridge</td>
+      <td>History, Philosophy &amp; Theology,Architecture,Ar...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2020</td>
+      <td>Arts &amp; humanities</td>
+      <td>30</td>
+      <td>3</td>
+      <td>University of Oxford</td>
+      <td>86.4</td>
+      <td>30</td>
+      <td>68.1</td>
+      <td>85</td>
+      <td>35.2</td>
+      <td>...</td>
+      <td>41%</td>
+      <td>46 : 54</td>
+      <td>University of Oxford</td>
+      <td>Art, Performing Arts &amp; Design,History, Philoso...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2020</td>
+      <td>Arts &amp; humanities</td>
+      <td>40</td>
+      <td>4</td>
+      <td>Massachusetts Institute of Technology</td>
+      <td>85.8</td>
+      <td>40</td>
+      <td>76.3</td>
+      <td>18</td>
+      <td>56.5</td>
+      <td>...</td>
+      <td>34%</td>
+      <td>39 : 61</td>
+      <td>Massachusetts Institute of Technology</td>
+      <td>Architecture,Archaeology,Languages, Literature...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2020</td>
+      <td>Arts &amp; humanities</td>
+      <td>50</td>
+      <td>5</td>
+      <td>Harvard University</td>
+      <td>84.3</td>
+      <td>50</td>
+      <td>68.3</td>
+      <td>84</td>
+      <td>36.0</td>
+      <td>...</td>
+      <td>24%</td>
+      <td>49 : 51</td>
+      <td>Harvard University</td>
+      <td>Architecture,History, Philosophy &amp; Theology,La...</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+      <td>Admissions Support</td>
+      <td>https://www.timeshighereducation.com/student/r...</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+Для пример давайте посмотрим динамику университетов некоторых стран в предметных рейтингах.
+
+```python showLineNumbers title="Количество университетов в предметных рейтингах по странам"
+pd.pivot_table(
+    ranking_subject[ranking_subject['location'].isin([
+        'Russian Federation', 'China',
+        'India', 'Germany', 'Turkey',
+        'United Kingdom', 'United States',
+        'France', 'Brazil', 'Iran', 
+        'Indonesia', 'Pakistan', 'Japan',
+        'Thailand', 'Italy'
+    ])],
+    index='location',
+    columns='year',
+    values='name',
+    aggfunc='count'
+).sort_values(by=[2024], ascending=False)
+```
+
+<div>
+<table class="dataframe">
+  <thead>
+    <tr>
+      <th>year</th>
+      <th>2020</th>
+      <th>2021</th>
+      <th>2022</th>
+      <th>2023</th>
+      <th>2024</th>
+    </tr>
+    <tr>
+      <th>location</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>United States</th>
+      <td>1385</td>
+      <td>1470</td>
+      <td>1499</td>
+      <td>1495</td>
+      <td>1447</td>
+    </tr>
+    <tr>
+      <th>United Kingdom</th>
+      <td>695</td>
+      <td>737</td>
+      <td>757</td>
+      <td>785</td>
+      <td>793</td>
+    </tr>
+    <tr>
+      <th>China</th>
+      <td>396</td>
+      <td>468</td>
+      <td>513</td>
+      <td>528</td>
+      <td>499</td>
+    </tr>
+    <tr>
+      <th>Japan</th>
+      <td>322</td>
+      <td>331</td>
+      <td>351</td>
+      <td>347</td>
+      <td>360</td>
+    </tr>
+    <tr>
+      <th>Italy</th>
+      <td>271</td>
+      <td>288</td>
+      <td>319</td>
+      <td>336</td>
+      <td>352</td>
+    </tr>
+    <tr>
+      <th>Brazil</th>
+      <td>243</td>
+      <td>287</td>
+      <td>307</td>
+      <td>341</td>
+      <td>332</td>
+    </tr>
+    <tr>
+      <th>Germany</th>
+      <td>284</td>
+      <td>286</td>
+      <td>310</td>
+      <td>320</td>
+      <td>320</td>
+    </tr>
+    <tr>
+      <th>Turkey</th>
+      <td>122</td>
+      <td>145</td>
+      <td>181</td>
+      <td>216</td>
+      <td>271</td>
+    </tr>
+    <tr>
+      <th>India</th>
+      <td>153</td>
+      <td>172</td>
+      <td>195</td>
+      <td>221</td>
+      <td>270</td>
+    </tr>
+    <tr>
+      <th>France</th>
+      <td>219</td>
+      <td>235</td>
+      <td>231</td>
+      <td>228</td>
+      <td>243</td>
+    </tr>
+    <tr>
+      <th>Russian Federation</th>
+      <td>130</td>
+      <td>166</td>
+      <td>196</td>
+      <td>230</td>
+      <td>241</td>
+    </tr>
+    <tr>
+      <th>Iran</th>
+      <td>107</td>
+      <td>128</td>
+      <td>146</td>
+      <td>167</td>
+      <td>185</td>
+    </tr>
+    <tr>
+      <th>Pakistan</th>
+      <td>36</td>
+      <td>50</td>
+      <td>65</td>
+      <td>89</td>
+      <td>120</td>
+    </tr>
+    <tr>
+      <th>Indonesia</th>
+      <td>23</td>
+      <td>40</td>
+      <td>62</td>
+      <td>79</td>
+      <td>106</td>
+    </tr>
+    <tr>
+      <th>Thailand</th>
+      <td>58</td>
+      <td>65</td>
+      <td>74</td>
+      <td>85</td>
+      <td>97</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 
 ## QS-рейтинг университетов
@@ -2133,4 +2519,6 @@ for i, s in enumerate(subjects):
 1. Best Global Universities:
     * Общий: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/best_global_universities.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/best_global_universities.xlsx)
     * Предметный: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/best_global_universities_subject.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/best_global_universities_subject.xlsx)
-1. Times Higher Education: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/the_2020-2023.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/the_2020-2023.xlsx)
+1. Times Higher Education:
+    * Общий: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/the_2020-2024.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/the_2020-2024.xlsx)
+    * Предметный: ⬇️ [csv](https://storage.yandexcloud.net/psal.public/datasets/rankings/the_2020-2024_subject.csv), ⬇️ [xlsx](https://storage.yandexcloud.net/psal.public/datasets/rankings/the_2020-2024_subject.xlsx)
