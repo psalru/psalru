@@ -146,8 +146,7 @@ module.exports = {
     'docusaurus-plugin-sass',
     ['docusaurus-plugin-yandex-metrica', {
       counterID: 91769261,
-      webvisor: true,
-      trackHash: true
+      webvisor: true
     }]
   ]
 };
