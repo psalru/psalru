@@ -102,11 +102,7 @@ const config = {
               {
                 label: 'Канал в Телеграмм',
                 href: 'https://t.me/psalchannel',
-              },
-              {
-                label: 'Обсуждения в Телеграмм',
-                href: 'https://t.me/psalgroup',
-              },
+              }
             ],
           },
           {
@@ -124,10 +120,6 @@ const config = {
                 label: 'Передовые инженерные школы',
                 href: 'https://engineers2030.ru',
               },
-              {
-                label: 'АНО «ЦРО «Интеграция»',
-                href: 'https://integration.institute',
-              }
             ],
           },
         ],
