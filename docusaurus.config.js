@@ -98,10 +98,6 @@ const config = {
               {
                 label: 'Репозитории на GitHub',
                 href: 'https://github.com/orgs/psalru/repositories',
-              },
-              {
-                label: 'Канал в Телеграмм',
-                href: 'https://t.me/psalchannel',
               }
             ],
           },
